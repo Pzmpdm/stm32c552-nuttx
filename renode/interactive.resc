@@ -1,0 +1,4 @@
+$firmware?=$ORIGIN/../build/stm32c552/nuttx
+include $ORIGIN/boot.resc
+showAnalyzer sysbus.usart1
+start

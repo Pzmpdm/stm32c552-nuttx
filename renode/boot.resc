@@ -1,0 +1,4 @@
+mach create "stm32c552vet6-devkit"
+machine LoadPlatformDescription $ORIGIN/stm32c552vet6-devkit.repl
+sysbus LoadELF $firmware
+cpu VectorTableOffset 0x08000000
