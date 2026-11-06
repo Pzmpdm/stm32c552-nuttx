@@ -1,9 +1,16 @@
 // Model for the board's 48 MHz HSIDIV3, USART1 and user GPIO.
-flash: Memory.MappedMemory @ sysbus 0x08000000
+// BOOT0 selects main flash at the reset alias.
+flash: Memory.MappedMemory @ {
+    sysbus 0x00000000;
+    sysbus 0x08000000
+}
     size: 0x80000
 
-sram: Memory.MappedMemory @ sysbus 0x20000000
-    size: 0x20000
+sram1: Memory.MappedMemory @ sysbus 0x20000000
+    size: 0x10000
+
+sram2: Memory.MappedMemory @ sysbus 0x20010000
+    size: 0x10000
 
 cpu: CPU.CortexM @ sysbus
     cpuType: "cortex-m33"
@@ -24,8 +31,8 @@ gpioa: GPIOPort.STM32_GPIOPort @ sysbus <0x42020000, +0x400>
     numberOfAFs: 16
 
 // Writable register backing for RCC gates. Clocks are fixed in this model.
-rcc: Memory.MappedMemory @ sysbus 0x44020C00
-    size: 0x400
+rcc_gates: Memory.ArrayMemory @ sysbus 0x44020C50
+    size: 0x3B0
 
 // STM32WBA shares the GPIO source and edge layout. Its model does not
 // reproduce the C5 interrupt/event mask or pending-register behavior.
