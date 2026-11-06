@@ -26,9 +26,9 @@ cmake -S nuttx -B build/stm32c552 -G Ninja \
   -DBOARD_CONFIG=stm32c552vet6-devkit:nsh
 cmake --build build/stm32c552
 
-mkdir -p build/nsh-acceptance-cmake
-(cd build/nsh-acceptance-cmake && "$RENODE_HOME/renode-test" \
-  ../../renode/nsh.robot ../../renode/nsh-regression.robot)
+mkdir -p build/board-gpio-cmake
+(cd build/board-gpio-cmake && "$RENODE_HOME/renode-test" \
+  ../../renode/nsh.robot ../../renode/nsh-regression.robot ../../renode/gpio.robot)
 ```
 
 已有构建目录会保留展开后的 `.config`。修改板级 `defconfig` 后，
@@ -37,23 +37,30 @@ mkdir -p build/nsh-acceptance-cmake
 
 - 运行 `renode renode/interactive.resc`，在 USART1 分析器输入命令。
 - ELF、BIN 和 HEX 镜像位于 `build/stm32c552/`。
-- CMake 测试报告位于 `build/nsh-acceptance-cmake/report.html`。
+- CMake 测试报告位于 `build/board-gpio-cmake/report.html`。
 
 同一配置也通过 GNU Make 构建和同一套 Renode 测试。对应产物与报告位于
-`build/stm32c552-make/` 和 `build/nsh-acceptance-make/report.html`。
+`build/stm32c552-gpio-make/` 和 `build/board-gpio-make/report.html`。
 
 Robot 测试确认冷启动提示符，检查 RCC 门控位、PA9/PA10 的 AF7 配置和
 USART1 波特率分频，通过 UART 执行 `echo`、`pwd` 和 `sleep 1`。
 测试要求 `sleep 1` 用时 0.95–1.10 秒仿真时间，返回提示符后继续执行命令。
 回归覆盖退格、CR 和 CRLF、连续命令、`ps`、`free`、`/dev`、`/proc`、
-注册应用 `dd`、`/tmp` 的 tmpfs 文件读写和 `sh`。CMake 固件在 100 轮
-文件操作前、50 轮和 100 轮时均有 50,312 字节可用堆和 2 个任务。
+注册应用 `dd`、`/tmp` 的 tmpfs 文件读写和 `sh`。100 轮文件操作测试会
+在第 0、50、100 轮比较可用堆和任务数量。
 当前行编辑器以 63 字节为一段处理输入，超过的字符进入下一段。串口命令
 应保持在这一长度以内。
 
-Renode 平台包含 Cortex-M33、NVIC/SysTick、Flash、SRAM、GPIOA 和 USART1。
+NSH 中可运行 `leds` 和 `buttons`，分别访问 `/dev/userleds` 和
+`/dev/buttons`。GPIO 回归覆盖 PH3 灯灭、点亮、熄灭，及 PC13 低电平
+按下和高电平松开的两轮通知。
+
+Renode 平台包含 Cortex-M33、NVIC/SysTick、Flash、SRAM、GPIOA/C/H、
+USART1 和 EXTI13。
 RCC 使用寄存器存储和固定时钟，UART 使用 Renode 自带的 STM32F7 USART
-模型，模型会忽略 C552 的 FIFO 使能位。实体板启动、电气和 FIFO 行为仍需实测。
+模型，模型会忽略 C552 的 FIFO 使能位。EXTI 使用 STM32WBA 模型验证引脚
+路由、边沿和中断回调。C5 的屏蔽及挂起寄存器语义、按键抖动和串口电气
+行为仍需实体板验证。
 `BOARD_LOOPSPERMSEC=2400` 按参考板的系统时钟比例取值，忙等待延时还需
 在实体板校准。
 
@@ -83,10 +90,13 @@ python tools/check-nsh-serial.py /dev/cu.usbserial-XXXX build/nsh-hardware/uart.
 [实施计划](docs/superpowers/plans/2026-11-06-stm32c552-nsh.md)。串口脚本已用
 Renode 伪串口验证。
 
+完整板级适配的顺序、排针候选和验收条件见
+[六阶段计划](docs/superpowers/plans/2026-11-06-stm32c552-board-port.md)。
+
 ## 版本与依据
 
 - NuttX 基线 `9ffe7625cb187004cf209f113b3cd96472c92ab2`。已验证的板级提交为
-  `336d3854cb11d144c257059088e9ff9f3ada6938`，位于 `nuttx/` 的
+  `a838abd093bfae3ed307078e889c5ee5ff9b2831`，位于 `nuttx/` 的
   `stm32c552vet6-devkit` 本地分支。
 - NuttX Apps 基线 `d14111ebeff7e8eb0512e63238883dece6842c05`。
 - 验证环境为 Arm GNU Toolchain 15.2.Rel1、Renode 1.17.0、Robot Framework 6.1。
