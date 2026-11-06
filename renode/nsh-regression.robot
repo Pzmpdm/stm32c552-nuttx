@@ -47,6 +47,49 @@ NSH Waits For A Registered Application
     Run NSH Command    dd invalid=1    ^usage:$
     Run NSH Command    echo after-dd    ^after-dd$
 
+NSH Runs A Script From Tmpfs
+    Run NSH Command    mkdir /tmp/nsh-test
+    Run NSH Command    ls /tmp    ^\\s*nsh-test/?\\s*$
+    Run NSH Command    echo first > /tmp/nsh-test/data
+    Run NSH Command    echo second >> /tmp/nsh-test/data
+    Run NSH Command    cp /tmp/nsh-test/data /tmp/nsh-test/copy
+    Write Line To Uart    cat /tmp/nsh-test/copy
+    Expect Output Line    first
+    Expect Output Line    second
+    Wait For Prompt On Uart    nsh>
+
+    Run NSH Command    echo 'set token ready' > /tmp/nsh-test/run
+    Run NSH Command    echo 'if test "$token" = ready; then' >> /tmp/nsh-test/run
+    Run NSH Command    echo 'echo script-ok' >> /tmp/nsh-test/run
+    Run NSH Command    echo 'fi' >> /tmp/nsh-test/run
+    Run NSH Command    sh /tmp/nsh-test/run    ^script-ok$
+    Run NSH Command    cat /tmp/nsh-test/missing    ^nsh: cat:.*failed
+    FOR    ${file}    IN    data    copy    run
+        Run NSH Command    rm /tmp/nsh-test/${file}
+    END
+    Run NSH Command    rmdir /tmp/nsh-test
+    Run NSH Command    ls /tmp/nsh-test    ^nsh: ls:.*failed
+
+NSH Recovers Resources After Repeated Commands
+    Exercise Tmpfs    warmup
+    ${initial_heap}=    Get Available Heap
+    ${initial_tasks}=    Get Task Count
+    FOR    ${round}    IN RANGE    1    51
+        Exercise Tmpfs    loop-${round}
+    END
+    ${middle_heap}=    Get Available Heap
+    ${middle_tasks}=    Get Task Count
+    FOR    ${round}    IN RANGE    51    101
+        Exercise Tmpfs    loop-${round}
+    END
+    ${final_heap}=    Get Available Heap
+    ${final_tasks}=    Get Task Count
+    Should Be Equal As Integers    ${middle_tasks}    ${initial_tasks}
+    Should Be Equal As Integers    ${final_tasks}    ${initial_tasks}
+    Should Be True    ${initial_heap} - ${middle_heap} < 1024
+    Should Be True    ${initial_heap} - ${final_heap} < 1024
+    Should Be True    ${final_heap} >= ${middle_heap}
+
 *** Keywords ***
 Boot NSH
     Execute Command    $firmware = @${ELF}
@@ -82,3 +125,25 @@ Get Available Heap
     Wait For Prompt On Uart    nsh>
     ${free}=    Evaluate    int($row.Line.split()[2])
     RETURN    ${free}
+
+Get Task Count
+    Write Line To Uart    ps; echo task-sample-end
+    Wait For Line On Uart    ^\\s*TID\\s+PID\\s+PPID.*COMMAND    treatAsRegex=True
+    ${count}=    Set Variable    ${0}
+    WHILE    True    limit=32
+        ${row}=    Wait For Line On Uart    ^(\\s*\\d+\\s+\\d+\\s+\\d+\\s+|task-sample-end$)    treatAsRegex=True
+        IF    $row.Line == 'task-sample-end'
+            BREAK
+        END
+        ${count}=    Evaluate    ${count} + 1
+    END
+    Wait For Prompt On Uart    nsh>
+    Should Be True    ${count} > 0
+    RETURN    ${count}
+
+Exercise Tmpfs
+    [Arguments]    ${payload}
+    Write Line To Uart    echo ${payload} > /tmp/n;cat /tmp/n;rm /tmp/n;echo rc-$?
+    Expect Output Line    ${payload}
+    Expect Output Line    rc-0
+    Wait For Prompt On Uart    nsh>

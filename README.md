@@ -1,6 +1,6 @@
 # STM32C552VET6 DevKit Core · NuttX NSH
 
-首阶段配置为 `stm32c552vet6-devkit:nsh`。固件从片内 Flash
+板级配置为 `stm32c552vet6-devkit:nsh`。固件从片内 Flash
 `0x08000000` 的复位向量启动，沿用芯片复位时的 48 MHz HSIDIV3
 系统时钟及总线分频。512 KiB Flash 可用，静态数据、栈和堆均使用
 `0x20000000` 起的 64 KiB SRAM1。SRAM2 的 ECC 初始化留待后续验证。
@@ -26,8 +26,9 @@ cmake -S nuttx -B build/stm32c552 -G Ninja \
   -DBOARD_CONFIG=stm32c552vet6-devkit:nsh
 cmake --build build/stm32c552
 
-mkdir -p build/renode
-(cd build/renode && "$RENODE_HOME/renode-test" ../../renode/nsh.robot)
+mkdir -p build/nsh-acceptance-cmake
+(cd build/nsh-acceptance-cmake && "$RENODE_HOME/renode-test" \
+  ../../renode/nsh.robot ../../renode/nsh-regression.robot)
 ```
 
 已有构建目录会保留展开后的 `.config`。修改板级 `defconfig` 后，
@@ -36,25 +37,57 @@ mkdir -p build/renode
 
 - 运行 `renode renode/interactive.resc`，在 USART1 分析器输入命令。
 - ELF、BIN 和 HEX 镜像位于 `build/stm32c552/`。
-- 测试报告位于 `build/renode/report.html`，详细步骤见 `build/renode/log.html`。
+- CMake 测试报告位于 `build/nsh-acceptance-cmake/report.html`。
 
 同一配置也通过 GNU Make 构建和同一套 Renode 测试。对应产物与报告位于
-`build/stm32c552-make/` 和 `build/renode-make/report.html`。
+`build/stm32c552-make/` 和 `build/nsh-acceptance-make/report.html`。
 
 Robot 测试确认冷启动提示符，检查 RCC 门控位、PA9/PA10 的 AF7 配置和
 USART1 波特率分频，通过 UART 执行 `echo`、`pwd` 和 `sleep 1`。
 测试要求 `sleep 1` 用时 0.95–1.10 秒仿真时间，返回提示符后继续执行命令。
+回归覆盖退格、CR 和 CRLF、连续命令、`ps`、`free`、`/dev`、`/proc`、
+注册应用 `dd`、`/tmp` 的 tmpfs 文件读写和 `sh`。CMake 固件在 100 轮
+文件操作前、50 轮和 100 轮时均有 50,312 字节可用堆和 2 个任务。
+当前行编辑器以 63 字节为一段处理输入，超过的字符进入下一段。串口命令
+应保持在这一长度以内。
 
 Renode 平台包含 Cortex-M33、NVIC/SysTick、Flash、SRAM、GPIOA 和 USART1。
 RCC 使用寄存器存储和固定时钟，UART 使用 Renode 自带的 STM32F7 USART
-模型，模型会忽略 C552 的 FIFO 使能位。阶段验收覆盖仿真中的启动、节拍和
-串口交互。实体板启动、电气和 FIFO 行为仍需实测。
+模型，模型会忽略 C552 的 FIFO 使能位。实体板启动、电气和 FIFO 行为仍需实测。
 `BOARD_LOOPSPERMSEC=2400` 按参考板的系统时钟比例取值，忙等待延时还需
 在实体板校准。
 
+## 实体板验收
+
+当前主机未检测到 ST-Link 或外接串口，实体板验收待接线。使用 SWD 连接
+目标板，另接 3.3 V USB 转串口。识别到目标后，从工程根目录记录固件散列，
+烧录并执行逐字节校验，再复位：
+
+```sh
+mkdir -p build/nsh-hardware
+shasum -a 256 build/stm32c552/nuttx.bin >build/nsh-hardware/firmware.sha256
+set -o pipefail
+STM32_Programmer_CLI -c port=SWD -d build/stm32c552/nuttx.bin 0x08000000 -v -rst \
+  2>&1 | tee build/nsh-hardware/flash.log
+```
+
+打开 NSH 后运行 100 条带序号的命令并保存串口记录。将下方的设备名换成
+实际串口：
+
+```sh
+python -m pip install pyserial==3.5
+python tools/check-nsh-serial.py /dev/cu.usbserial-XXXX build/nsh-hardware/uart.log
+```
+
+冷启动、NRST、人工输入和 30 分钟运行的验收项见
+[实施计划](docs/superpowers/plans/2026-11-06-stm32c552-nsh.md)。串口脚本已用
+Renode 伪串口验证。
+
 ## 版本与依据
 
-- NuttX 基线 `9ffe7625cb187004cf209f113b3cd96472c92ab2`，板级移植在 `nuttx/`。
+- NuttX 基线 `9ffe7625cb187004cf209f113b3cd96472c92ab2`。已验证的板级提交为
+  `336d3854cb11d144c257059088e9ff9f3ada6938`，位于 `nuttx/` 的
+  `stm32c552vet6-devkit` 本地分支。
 - NuttX Apps 基线 `d14111ebeff7e8eb0512e63238883dece6842c05`。
 - 验证环境为 Arm GNU Toolchain 15.2.Rel1、Renode 1.17.0、Robot Framework 6.1。
 - 板级信号来自同目录的 PADS 原理图及已有 STM32CubeMX2 工程。芯片定义与 ST CMSIS
