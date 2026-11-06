@@ -1,9 +1,9 @@
 # STM32C552VET6 DevKit Core · NuttX NSH
 
-板级配置为 `stm32c552vet6-devkit:nsh`。固件从片内 Flash
+默认板级配置为 `stm32c552vet6-devkit:nsh`。固件从片内 Flash
 `0x08000000` 的复位向量启动，沿用芯片复位时的 48 MHz HSIDIV3
 系统时钟及总线分频。512 KiB Flash 可用，静态数据、栈和堆均使用
-`0x20000000` 起的 64 KiB SRAM1。SRAM2 的 ECC 初始化留待后续验证。
+`0x20000000` 起的 64 KiB SRAM1。
 板上的 8 MHz HSE 和 32.768 kHz LSE 在此配置中闲置。
 
 串口控制台为 USART1，115200 8N1。原理图的 H4.4（PA9、AF7）是 TX，
@@ -64,6 +64,45 @@ RCC 使用寄存器存储和固定时钟，UART 使用 Renode 自带的 STM32F7 
 `BOARD_LOOPSPERMSEC=2400` 按参考板的系统时钟比例取值，忙等待延时还需
 在实体板校准。
 
+## SRAM2 和 144 MHz 配置
+
+两个配置分别验证内存和时钟。默认 `nsh` 可继续作为 48 MHz 调试基线。
+
+| 配置 | 功能与仿真验收 |
+|---|---|
+| `stm32c552vet6-devkit:nsh-sram2` | 保持 48 MHz，启动时打开 SRAM2 门控并以对齐的 32 位写入清零，将 `0x20010000` 起的 64 KiB 加入独立堆区。测试覆盖冷启动、复位、60,000 字节的 32 位及 8 位读写和释放。CMake 与 Make 各通过 10 项测试。 |
+| `stm32c552vet6-devkit:nsh-hse` | 从板载 8 MHz HSE 驱动 144 MHz PSI。HSE 就绪、PSI 就绪或系统时钟切换超时时回退至标称 144 MHz HSIS。测试核对 Flash 等待状态、系统时钟状态、USART1 分频及 `sleep 1`。CMake 与 Make 各通过 4 项时钟测试。 |
+
+从工程根目录构建并复跑 SRAM2：
+
+```sh
+cmake -S nuttx -B build/stm32c552-sram2 -G Ninja \
+  -DBOARD_CONFIG=stm32c552vet6-devkit:nsh-sram2
+cmake --build build/stm32c552-sram2
+mkdir -p build/board-sram2
+sram_elf="$PWD/build/stm32c552-sram2/nuttx"
+(cd build/board-sram2 && "$RENODE_HOME/renode-test" \
+  ../../renode/nsh.robot ../../renode/nsh-regression.robot \
+  ../../renode/gpio.robot ../../renode/sram2.robot \
+  --variable ELF:"$sram_elf")
+```
+
+复跑高速时钟：
+
+```sh
+cmake -S nuttx -B build/stm32c552-hse -G Ninja \
+  -DBOARD_CONFIG=stm32c552vet6-devkit:nsh-hse
+cmake --build build/stm32c552-hse
+mkdir -p build/board-clock
+(cd build/board-clock && "$RENODE_HOME/renode-test" ../../renode/clock.robot)
+```
+
+SRAM2 仿真验证内存内容和分配，ECC 硬件行为仍需真机测试。时钟模型用固定
+144 MHz 驱动 UART 和 SysTick，并注入寄存器级超时。晶振起振、频率和
+Flash 时序仍需真机验证。LSE/RTC 单列后续，ES0661 指出 LQFP 上的 PC13
+跳变可能影响 LSE，因此需评估 RTC 使用 LSI 或另建停用 PC13 按键的 LSE
+配置。[ST AN5342](https://www.st.com/content/st_com/en/technical-documents/an5342--how-to-use-error-correction-code-ecc-management-for-internal-memories-protection-on-stm32-mcus-stmicroelectronics_asset/chunk-001-topic-an5342-ecc-overview.html) · [ST ES0661](https://www.st.com/content/st_com/en/technical-documents/es0661-stm32c551xx552xx562xx-device-errata-stmicroelectronics_asset/chunk-001-topic-es-description.html)
+
 ## 实体板验收
 
 当前主机未检测到 ST-Link 或外接串口，实体板验收待接线。使用 SWD 连接
@@ -96,7 +135,7 @@ Renode 伪串口验证。
 ## 版本与依据
 
 - NuttX 基线 `9ffe7625cb187004cf209f113b3cd96472c92ab2`。已验证的板级提交为
-  `a838abd093bfae3ed307078e889c5ee5ff9b2831`，位于 `nuttx/` 的
+  `bc24ef0ca781c3ea96f2886aa0e0eebd2aedee7b`，位于 `nuttx/` 的
   `stm32c552vet6-devkit` 本地分支。
 - NuttX Apps 基线 `d14111ebeff7e8eb0512e63238883dece6842c05`。
 - 验证环境为 Arm GNU Toolchain 15.2.Rel1、Renode 1.17.0、Robot Framework 6.1。
