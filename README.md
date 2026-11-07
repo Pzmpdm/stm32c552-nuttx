@@ -138,6 +138,18 @@ CMake 和 GNU Make 固件各通过 27 项 Renode 测试，包含重复起始、�
 NSH/GPIO/PWM/UART 回归。完整模型通过 `PLATFORM` 参数传给所有套件。
 构建命令、外部上拉要求及模型限制见 [I²C1 记录](docs/I2C.md)。
 
+## SPI1 配置
+
+`stm32c552vet6-devkit:nsh-spi` 保留 I²C/UART/PWM，新增 `/dev/spi1` 和
+标准 `spi` 工具。PA5/PA6/PA7 AF5 为 SCK/MISO/MOSI，PA4 为低有效 GPIO CS。
+当前 48 MHz 内核、全双工轮询，验收 8/16/32 位及 mode 0–3；SCK 请求
+上限为 24 MHz，最低分频档为 187.5 kHz。
+
+CMake 和 GNU Make 各通过 36 项 Renode 测试，包含九项 SPI 和此前所有
+NSH/GPIO/PWM/UART/I²C 回归。动态从设备验证双向数据与实际 GPIO 片选，
+实际时钟波形仍待真机确认。构建命令、工具载荷限制及模型边界见
+[SPI1 记录](docs/SPI.md)。
+
 ## 实体板验收
 
 当前主机未检测到 ST-Link 或外接串口，实体板验收待接线。使用 SWD 连接
@@ -170,7 +182,7 @@ Renode 伪串口验证。
 ## 版本与依据
 
 - NuttX 基线 `9ffe7625cb187004cf209f113b3cd96472c92ab2`。已验证的板级提交为
-  `f2d061f7cc953db5e5c978c2727a238cbd1ff1f9`，位于 `nuttx/` 的
+  `1bb4a68e4ed5d64ff9d98917212502d553033a29`，位于 `nuttx/` 的
   `stm32c552vet6-devkit` 本地分支。
 - NuttX Apps 基线 `d14111ebeff7e8eb0512e63238883dece6842c05`。
 - 验证环境为 Arm GNU Toolchain 15.2.Rel1、Renode 1.17.0、Robot Framework 6.1。

@@ -1,3 +1,5 @@
+include $ORIGIN/STM32C5_SPI.cs
+include $ORIGIN/SPIStatefulTarget.cs
 include $ORIGIN/STM32C5_TIM2.cs
 include $ORIGIN/STM32C5_I2C.cs
 include $ORIGIN/I2CRegisterMemory.cs

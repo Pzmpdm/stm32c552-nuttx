@@ -1,0 +1,9 @@
+using "stm32c552vet6-devkit-i2c.repl"
+
+spi1: SPI.STM32C5_SPI @ sysbus 0x40013000
+    IRQ -> nvic@48
+
+target: SPI.SPIStatefulTarget @ spi1
+
+gpioa:
+    4 -> target@0
