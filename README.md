@@ -103,6 +103,18 @@ Flash 时序仍需真机验证。LSE/RTC 单列后续，ES0661 指出 LQFP 上�
 跳变可能影响 LSE，因此需评估 RTC 使用 LSI 或另建停用 PC13 按键的 LSE
 配置。[ST AN5342](https://www.st.com/content/st_com/en/technical-documents/an5342--how-to-use-error-correction-code-ecc-management-for-internal-memories-protection-on-stm32-mcus-stmicroelectronics_asset/chunk-001-topic-an5342-ecc-overview.html) · [ST ES0661](https://www.st.com/content/st_com/en/technical-documents/es0661-stm32c551xx552xx562xx-device-errata-stmicroelectronics_asset/chunk-001-topic-es-description.html)
 
+## TIM2 PWM 配置
+
+`stm32c552vet6-devkit:nsh-pwm` 新增 `/dev/pwm0`。TIM2_CH1 使用 PA0 AF1，
+对应 H2.3。NSH 中运行 `pwm -f 1000 -d 50 -t 5`，输出五秒 1 kHz、50%
+PWM。该配置使用 48 MHz、SRAM1，并保留控制台、LED、按键和 tmpfs。
+
+CMake 和 GNU Make 固件各通过 14 项 Renode 测试，覆盖所选的 1 Hz～10 kHz、
+1%～99% 占空比测试点、停止、重新打开及 NSH/GPIO 回归。仿真补齐了原
+STM32_Timer 模型的 UG 周期装载行为，PA0 边沿通过 GPIO AF1 路由测量。
+预装载细节、首次输出相位和实板波形仍待验证。构建命令、报告位置与模型
+限制见 [PWM 记录](docs/PWM.md)。当前状态与接续任务见 [交接文档](docs/HANDOFF.md)。
+
 ## 实体板验收
 
 当前主机未检测到 ST-Link 或外接串口，实体板验收待接线。使用 SWD 连接
@@ -135,7 +147,7 @@ Renode 伪串口验证。
 ## 版本与依据
 
 - NuttX 基线 `9ffe7625cb187004cf209f113b3cd96472c92ab2`。已验证的板级提交为
-  `bc24ef0ca781c3ea96f2886aa0e0eebd2aedee7b`，位于 `nuttx/` 的
+  `83519d96c824681faab1d02b0ce59cf514cf2c47`，位于 `nuttx/` 的
   `stm32c552vet6-devkit` 本地分支。
 - NuttX Apps 基线 `d14111ebeff7e8eb0512e63238883dece6842c05`。
 - 验证环境为 Arm GNU Toolchain 15.2.Rel1、Renode 1.17.0、Robot Framework 6.1。

@@ -1,0 +1,14 @@
+using "stm32c552vet6-devkit.repl"
+
+// TIM2 has a 32-bit counter. Channel 1 reaches PA0 through AF1.
+// RCC gates remain register storage; the timer clock is fixed at 48 MHz.
+tim2: Timers.STM32C5_TIM2 @ sysbus 0x40000000
+    frequency: 48000000
+    IRQ -> nvic@40
+    0 -> gpioa#00@1
+
+gpioa:
+    0 -> pwm_output@0
+
+// A probe for the pin's logic level, with no physical LED on PA0.
+pwm_output: Miscellaneous.LED @ gpioa
