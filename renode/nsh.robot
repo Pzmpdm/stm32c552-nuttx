@@ -1,9 +1,11 @@
 *** Variables ***
 ${ELF}       ${CURDIR}/../build/stm32c552/nuttx
+${PLATFORM}    ${CURDIR}/stm32c552vet6-devkit.repl
 
 *** Test Cases ***
 NSH boots and executes commands over USART1
     Execute Command             $firmware = @${ELF}
+    Execute Command    $platform = @${PLATFORM}
     Execute Command             include @${CURDIR}/boot.resc
     Create Terminal Tester      sysbus.usart1    timeout=5
     Start Emulation

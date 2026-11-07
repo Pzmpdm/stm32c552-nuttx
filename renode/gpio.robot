@@ -3,6 +3,7 @@ Test Setup    Boot NSH
 
 *** Variables ***
 ${ELF}    ${CURDIR}/../build/stm32c552/nuttx
+${PLATFORM}    ${CURDIR}/stm32c552vet6-devkit.repl
 
 *** Test Cases ***
 PH3 User LED Starts Off And Can Be Toggled
@@ -28,6 +29,7 @@ PC13 Button Delivers Press And Release Interrupts
 *** Keywords ***
 Boot NSH
     Execute Command    $firmware = @${ELF}
+    Execute Command    $platform = @${PLATFORM}
     Execute Command    include @${CURDIR}/boot.resc
     Create Terminal Tester    sysbus.usart1    timeout=2
     Start Emulation

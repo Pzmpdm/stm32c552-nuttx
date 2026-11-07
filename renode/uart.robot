@@ -3,6 +3,7 @@ Test Setup    Boot UART NSH
 
 *** Variables ***
 ${ELF}    ${CURDIR}/../build/stm32c552-uart/nuttx
+${PLATFORM}    ${CURDIR}/stm32c552vet6-devkit-uart.repl
 
 *** Test Cases ***
 USART2 Is Registered As The Second Serial Device
@@ -55,11 +56,9 @@ USART2 Changes Baud Rate Across Close And Reopen
 
 *** Keywords ***
 Boot UART NSH
-    Execute Command    include @${CURDIR}/STM32C5_TIM2.cs
-    Execute Command    mach create "stm32c552-uart"
-    Execute Command    machine LoadPlatformDescription @${CURDIR}/stm32c552vet6-devkit-uart.repl
-    Execute Command    sysbus LoadELF @${ELF}
-    Execute Command    cpu VectorTableOffset 0x08000000
+    Execute Command    $firmware = @${ELF}
+    Execute Command    $platform = @${PLATFORM}
+    Execute Command    include @${CURDIR}/boot.resc
     Execute Command    include @${CURDIR}/uart2-wire.py
     Execute Command    uart2_install
     Create Terminal Tester    sysbus.usart1    timeout=5

@@ -126,6 +126,18 @@ TX/RX 回环、9600/115200/921600 三组波特率及 NSH/GPIO/PWM 回归。
 测试波特率由稳定后的寄存器计算，尚需实板核对线速、FIFO 和错误恢复。
 构建命令、报告与模型限制见 [USART2 记录](docs/UART.md)。
 
+## I²C1 配置
+
+`stm32c552vet6-devkit:nsh-i2c` 在串口/PWM 配置上新增 `/dev/i2c1` 和
+`i2c` 工具。SCL 为 PB8 AF4（H3.21），SDA 为 PB9 AF4（H3.20），实板需要
+外部上拉。当前为 48 MHz 内核时钟、7 位地址、中断控制器模式，支持
+100/400 kHz 请求档位；实际线速需测量。
+
+CMake 和 GNU Make 固件各通过 27 项 Renode 测试，包含重复起始、连续写入、
+跨 255 字节读取、NACK、超时恢复及 ES0661 的 BERR 勘误路径，并保留全部
+NSH/GPIO/PWM/UART 回归。完整模型通过 `PLATFORM` 参数传给所有套件。
+构建命令、外部上拉要求及模型限制见 [I²C1 记录](docs/I2C.md)。
+
 ## 实体板验收
 
 当前主机未检测到 ST-Link 或外接串口，实体板验收待接线。使用 SWD 连接
@@ -158,7 +170,7 @@ Renode 伪串口验证。
 ## 版本与依据
 
 - NuttX 基线 `9ffe7625cb187004cf209f113b3cd96472c92ab2`。已验证的板级提交为
-  `31a24fecb0f1fb72f82a55a44ff24de9ca796aaa`，位于 `nuttx/` 的
+  `f2d061f7cc953db5e5c978c2727a238cbd1ff1f9`，位于 `nuttx/` 的
   `stm32c552vet6-devkit` 本地分支。
 - NuttX Apps 基线 `d14111ebeff7e8eb0512e63238883dece6842c05`。
 - 验证环境为 Arm GNU Toolchain 15.2.Rel1、Renode 1.17.0、Robot Framework 6.1。

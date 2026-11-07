@@ -1,4 +1,8 @@
+include $ORIGIN/STM32C5_TIM2.cs
+include $ORIGIN/STM32C5_I2C.cs
+include $ORIGIN/I2CRegisterMemory.cs
+$platform?=$ORIGIN/stm32c552vet6-devkit.repl
 mach create "stm32c552vet6-devkit"
-machine LoadPlatformDescription $ORIGIN/stm32c552vet6-devkit.repl
+machine LoadPlatformDescription $platform
 sysbus LoadELF $firmware
 cpu VectorTableOffset 0x08000000

@@ -3,6 +3,7 @@ Test Setup    Load SRAM2 Firmware
 
 *** Variables ***
 ${ELF}    ${CURDIR}/../build/stm32c552-sram2/nuttx
+${PLATFORM}    ${CURDIR}/stm32c552vet6-devkit.repl
 
 *** Test Cases ***
 Boot Scrubs SRAM2 Before Adding It To The Heap
@@ -30,6 +31,7 @@ NSH Can Allocate Test And Free A Large SRAM2 Block
 *** Keywords ***
 Load SRAM2 Firmware
     Execute Command    $firmware = @${ELF}
+    Execute Command    $platform = @${PLATFORM}
     Execute Command    include @${CURDIR}/boot.resc
     Create Terminal Tester    sysbus.usart1    timeout=4
 

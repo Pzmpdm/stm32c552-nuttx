@@ -3,6 +3,7 @@ Test Setup    Boot NSH
 
 *** Variables ***
 ${ELF}    ${CURDIR}/../build/stm32c552/nuttx
+${PLATFORM}    ${CURDIR}/stm32c552vet6-devkit.repl
 
 *** Test Cases ***
 Serial Input Recovers After Invalid Lines
@@ -93,6 +94,7 @@ NSH Recovers Resources After Repeated Commands
 *** Keywords ***
 Boot NSH
     Execute Command    $firmware = @${ELF}
+    Execute Command    $platform = @${PLATFORM}
     Execute Command    include @${CURDIR}/boot.resc
     Create Terminal Tester    sysbus.usart1    timeout=3
     Start Emulation

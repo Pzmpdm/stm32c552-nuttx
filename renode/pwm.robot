@@ -3,6 +3,7 @@ Test Setup    Boot PWM NSH
 
 *** Variables ***
 ${ELF}    ${CURDIR}/../build/stm32c552-pwm/nuttx
+${PLATFORM}    ${CURDIR}/stm32c552vet6-devkit-pwm.repl
 
 *** Test Cases ***
 PWM Device Is Registered Without Starting The Timer
@@ -33,11 +34,9 @@ PWM Can Be Closed And Reopened With New Settings
 
 *** Keywords ***
 Boot PWM NSH
-    Execute Command    include @${CURDIR}/STM32C5_TIM2.cs
-    Execute Command    mach create "stm32c552-pwm"
-    Execute Command    machine LoadPlatformDescription @${CURDIR}/stm32c552vet6-devkit-pwm.repl
-    Execute Command    sysbus LoadELF @${ELF}
-    Execute Command    cpu VectorTableOffset 0x08000000
+    Execute Command    $firmware = @${ELF}
+    Execute Command    $platform = @${PLATFORM}
+    Execute Command    include @${CURDIR}/boot.resc
     Create Terminal Tester    sysbus.usart1    timeout=6
     Create LED Tester    sysbus.gpioa.pwm_output    defaultTimeout=1
     Start Emulation
