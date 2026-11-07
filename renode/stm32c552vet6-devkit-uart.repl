@@ -1,0 +1,7 @@
+using "stm32c552vet6-devkit-pwm.repl"
+
+// USART2 uses PCLK1 at 48 MHz and external IRQ 52.
+// Character-level serial model: PA2/PA3 AF7 is checked separately.
+usart2: UART.STM32F7_USART @ sysbus 0x40004400
+    frequency: 48000000
+    IRQ -> nvic@52

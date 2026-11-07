@@ -115,6 +115,17 @@ STM32_Timer 模型的 UG 周期装载行为，PA0 边沿通过 GPIO AF1 路由�
 预装载细节、首次输出相位和实板波形仍待验证。构建命令、报告位置与模型
 限制见 [PWM 记录](docs/PWM.md)。当前状态与接续任务见 [交接文档](docs/HANDOFF.md)。
 
+## USART2 配置
+
+`stm32c552vet6-devkit:nsh-uart` 在 PWM 配置上新增 USART2 `/dev/ttyS1`，
+TX 为 PA2 AF7（H2.1），RX 为 PA3 AF7（H2.6），USART1 保持 NSH 控制台。
+用 `stty -F /dev/ttyS1 raw speed 115200` 设置二进制收发模式。
+
+CMake 和 GNU Make 固件各通过 19 项 Renode 测试，包含 4 KiB 二进制收发、
+TX/RX 回环、9600/115200/921600 三组波特率及 NSH/GPIO/PWM 回归。
+测试波特率由稳定后的寄存器计算，尚需实板核对线速、FIFO 和错误恢复。
+构建命令、报告与模型限制见 [USART2 记录](docs/UART.md)。
+
 ## 实体板验收
 
 当前主机未检测到 ST-Link 或外接串口，实体板验收待接线。使用 SWD 连接
@@ -147,7 +158,7 @@ Renode 伪串口验证。
 ## 版本与依据
 
 - NuttX 基线 `9ffe7625cb187004cf209f113b3cd96472c92ab2`。已验证的板级提交为
-  `83519d96c824681faab1d02b0ce59cf514cf2c47`，位于 `nuttx/` 的
+  `31a24fecb0f1fb72f82a55a44ff24de9ca796aaa`，位于 `nuttx/` 的
   `stm32c552vet6-devkit` 本地分支。
 - NuttX Apps 基线 `d14111ebeff7e8eb0512e63238883dece6842c05`。
 - 验证环境为 Arm GNU Toolchain 15.2.Rel1、Renode 1.17.0、Robot Framework 6.1。
