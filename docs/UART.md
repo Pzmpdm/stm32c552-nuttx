@@ -47,7 +47,7 @@ CMake 和独立 checkout 的 GNU Make 固件分别运行同一套 19 项测试�
 | 设备枚举 | `/dev/ttyS0` 与 `/dev/ttyS1` 同时存在 |
 | 接收阻塞与控制台并行 | USART2 等待数据时 USART1 继续执行命令；收到的 64 字节完整读回 |
 | 4 KiB 二进制收发 | 主机分块注入全部字节值，存入 tmpfs 后经 USART2 发出，逐字节检查长度和顺序 |
-| 4 KiB 回环 | 将真实 TX 字符事件送回 RX；后台接收完成后 `cmp` 一致，同时校验实际 TX 字节序列 |
+| 4 KiB 回环 | 按 115200 8N1 的虚拟帧间隔将 TX 字节送回 RX，后台接收完成后用 `cmp` 核对，并校验实际 TX 字节序列 |
 | 改速与重新打开 | 9600、115200、921600 三组设置分别检查稳定后的寄存器和 256 字节收发 |
 
 数据覆盖 `0x00`～`0xFF`，不同的 256 字节块使用不同模式。4 KiB 数据超过 RX/TX 软件缓冲容量，覆盖分块传输。测试核对 PA2/PA3 的 AF7、RCC 源和门控、8N1、RX 中断使能与 NVIC 外部 IRQ 52。端口关闭后确认 UE/RE/TE、RCC 门控和 NVIC 使能均清零。
@@ -62,7 +62,9 @@ CMake 和独立 checkout 的 GNU Make 固件分别运行同一套 19 项测试�
 
 ## 仿真边界和后续
 
-`renode/stm32c552vet6-devkit-uart.repl` 复用 PWM 平台并增加 STM32F7 USART 模型。`uart2-wire.py` 只探测 TX 字符事件、按需送回 RX，并检查字节序列，不返回固定响应。引脚复用通过寄存器检查，串口字符并未在 PA2/PA3 上模拟电气波形。[Renode UART 模型](https://github.com/renode/renode-infrastructure/blob/master/src/Emulator/Peripherals/Peripherals/UART/STM32F7_USART.cs)
+`renode/stm32c552vet6-devkit-uart.repl` 复用 PWM 平台并增加 STM32F7 USART 模型。`uart2-wire.py` 捕获 TX 字符事件，在启用回环时排队，按 115200 8N1 的帧间隔逐字节送回 RX。引脚复用通过寄存器检查，串口字符并未在 PA2/PA3 上模拟电气波形。[Renode UART 模型](https://github.com/renode/renode-infrastructure/blob/master/src/Emulator/Peripherals/Peripherals/UART/STM32F7_USART.cs)
+
+ADC 阶段的 Make 回归中，原先即时回送的 4 KiB 用例曾等待接收超时，报告在 `build/board-adc-uart-unpaced/report.html`。回送改为使用 Renode 虚拟时间推进，仍核对全部 4096 字节和两个中断路径。同一固件的回环专项各重复三次，原即时回送与新定时回送均通过。
 
 - RCC 门控是寄存器存储，UART 使用固定 48 MHz；FIFOEN 被模型忽略。尚未验证 C5 FIFO 深度、满载溢出、噪声、帧错误及电气特性。
 - 改速时模型会检查中间 BRR/OVER8 组合并产生警告。当前验收是在重新打开后的稳定状态进行，未验收保持端口打开时的在线改速。现有 NuttX 驱动会在配置格式期间关闭 UE 再恢复。

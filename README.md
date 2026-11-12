@@ -150,6 +150,16 @@ NSH/GPIO/PWM/UART/I²C 回归。动态从设备验证双向数据与实际 GPIO 
 实际时钟波形仍待真机确认。构建命令、工具载荷限制及模型边界见
 [SPI1 记录](docs/SPI.md)。
 
+## ADC1 配置
+
+`stm32c552vet6-devkit:nsh-adc` 新增 `/dev/adc0`，使用 PC0（H3.14）的
+ADC1_IN8、12 位单次转换及软件触发。`adc -n1` 读取一个原始码值，
+`adc -n32` 在一次打开期间重复采样 32 次。
+
+CMake 和 GNU Make 各通过 43 项 Renode 测试。七项 ADC 专项覆盖已知
+输入、重复采样、转换中断及三种初始化超时后的恢复。复现和模型边界
+见 [ADC1 记录](docs/ADC.md)。
+
 ## 实体板验收
 
 当前主机未检测到 ST-Link 或外接串口，实体板验收待接线。使用 SWD 连接
@@ -182,7 +192,7 @@ Renode 伪串口验证。
 ## 版本与依据
 
 - NuttX 基线 `9ffe7625cb187004cf209f113b3cd96472c92ab2`。已验证的板级提交为
-  `1bb4a68e4ed5d64ff9d98917212502d553033a29`，位于 `nuttx/` 的
+  `5bcb29fe473095c10547d8f647bf5dac202bc212`，位于 `nuttx/` 的
   `stm32c552vet6-devkit` 本地分支。
 - NuttX Apps 基线 `d14111ebeff7e8eb0512e63238883dece6842c05`。
 - 验证环境为 Arm GNU Toolchain 15.2.Rel1、Renode 1.17.0、Robot Framework 6.1。

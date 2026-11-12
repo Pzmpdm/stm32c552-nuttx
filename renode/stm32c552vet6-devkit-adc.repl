@@ -1,0 +1,6 @@
+using "stm32c552vet6-devkit-spi.repl"
+
+adc1: Analog.STM32C5_ADC @ sysbus 0x42028000
+    sysbus: sysbus
+    referenceVoltage: 3.3
+    IRQ -> nvic@32
