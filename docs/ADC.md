@@ -59,4 +59,4 @@ CMake 与 GNU Make 的报告分别在 `build/board-adc-final-cmake/report.html` 
 
 PADS PCB 网表中，VREF+（U2.21、C19.2）属于 A_3V3，VREF−（U2.20、C15.1）属于 AGND。实板验收先测量这两点的电压差，再用低阻抗已知电压源与板共地，核对参考范围内的原始码值、重复性和噪声。模拟精度、有效采样时间、上电及复位时序等待实测。软件验证范围为单 ADC、单外部通道的软件触发和 EOC 中断。连续模式、定时器触发、DMA、双 ADC、注入组、过载及 144 MHz/SRAM2 组合待后续验证。
 
-下一项为 LPDMA。先核对 C552 的通道寄存器、请求映射与 IRQ，验证内存搬运及错误中断，再接入外设采样缓冲。
+四样本 DMA 采集已接入 `nsh-lpdma`，详见 [LPDMA 记录](LPDMA.md)。下一阶段为 USB-C 设备与 CDC ACM。

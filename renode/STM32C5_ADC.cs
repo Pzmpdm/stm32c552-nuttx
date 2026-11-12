@@ -3,13 +3,14 @@
 // Add the C5 power/calibration handshake and passive protocol observations.
 using Antmicro.Renode.Core;
 using Antmicro.Renode.Peripherals.Bus;
+using Antmicro.Renode.Peripherals.DMA;
 
 namespace Antmicro.Renode.Peripherals.Analog
 {
     public class STM32C5_ADC : STM32_ADC_Common, IDoubleWordPeripheral
     {
-        public STM32C5_ADC(IMachine machine, SystemBus sysbus, double referenceVoltage)
-            : base(machine, referenceVoltage, 1, 0, null,
+        public STM32C5_ADC(IMachine machine, SystemBus sysbus, double referenceVoltage, IDMA dma = null)
+            : base(machine, referenceVoltage, 1, dma == null ? 0 : 1, dma,
                    watchdogCount: 3, hasCalibration: true, channelCount: 14,
                    hasPrescaler: false, hasVbatPin: false,
                    hasChannelSequence: true, hasPowerRegister: false,
@@ -52,6 +53,7 @@ namespace Antmicro.Renode.Peripherals.Analog
             Calibrations = 0;
             Enables = 0;
             Starts = 0;
+            DmaArms = 0;
             DataReads = 0;
             SequencingErrors = 0;
         }
@@ -114,14 +116,19 @@ namespace Antmicro.Renode.Peripherals.Analog
                 {
                     Starts++;
                     if((base.ReadDoubleWord(Control) & 1) == 0 || !calibrated
-                        || LastPreselection != 0x100 || LastSequence != 0x200)
+                        || LastPreselection != 0x100
+                        || LastSequence != ((LastConfiguration & 1) == 0 ? 0x200u : 0x08208203u))
                     {
                         SequencingErrors++;
                     }
                 }
                 value &= ~(Calibrate | DeepPowerDown);
             }
-            if(offset == 0x0C) LastConfiguration = value;
+            if(offset == 0x0C)
+            {
+                LastConfiguration = value;
+                if((value & 3) == 1) DmaArms++;
+            }
             if(offset == 0x14) LastSampleTime = value;
             if(offset == 0x1C) LastPreselection = value;
             if(offset == 0x30) LastSequence = value;
@@ -146,6 +153,7 @@ namespace Antmicro.Renode.Peripherals.Analog
         public int Calibrations { get; private set; }
         public int Enables { get; private set; }
         public int Starts { get; private set; }
+        public int DmaArms { get; private set; }
         public int DataReads { get; private set; }
         public int SequencingErrors { get; private set; }
         public uint LastConfiguration { get; private set; }

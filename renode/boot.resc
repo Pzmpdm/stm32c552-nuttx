@@ -1,3 +1,4 @@
+include $ORIGIN/STM32C5_LPDMA.cs
 include $ORIGIN/STM32C5_ADC.cs
 include $ORIGIN/STM32C5_SPI.cs
 include $ORIGIN/SPIStatefulTarget.cs

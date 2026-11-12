@@ -1,0 +1,14 @@
+using "stm32c552vet6-devkit-adc.repl"
+
+lpdma1: DMA.STM32C5_LPDMA @ sysbus 0x40020000
+    sysbus: sysbus
+    channelCount: 8
+    [0-7] -> nvic@[23-30]
+
+lpdma2: DMA.STM32C5_LPDMA @ sysbus 0x40021000
+    sysbus: sysbus
+    channelCount: 4
+    [0-3] -> nvic@[78-81]
+
+adc1:
+    dma: lpdma1

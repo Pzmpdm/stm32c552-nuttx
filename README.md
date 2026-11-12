@@ -160,6 +160,13 @@ CMake 和 GNU Make 各通过 43 项 Renode 测试。七项 ADC 专项覆盖已�
 输入、重复采样、转换中断及三种初始化超时后的恢复。复现和模型边界
 见 [ADC1 记录](docs/ADC.md)。
 
+## LPDMA 配置
+
+`stm32c552vet6-devkit:nsh-lpdma` 增加 LPDMA1/2 内存自检和 ADC1 批量采样。
+`adc -n1` 通过 LPDMA1 读取四个 PC0 样本。CMake 和 GNU Make 各通过
+44 项 Renode 测试，覆盖 12 个通道的内存搬运、ADC 请求、完成中断与故障恢复。
+复现及实板待测项目见 [LPDMA 记录](docs/LPDMA.md)。
+
 ## 实体板验收
 
 当前主机未检测到 ST-Link 或外接串口，实体板验收待接线。使用 SWD 连接
@@ -192,7 +199,7 @@ Renode 伪串口验证。
 ## 版本与依据
 
 - NuttX 基线 `9ffe7625cb187004cf209f113b3cd96472c92ab2`。已验证的板级提交为
-  `5bcb29fe473095c10547d8f647bf5dac202bc212`，位于 `nuttx/` 的
+  `ea017765265c8d2a96a450e08a954277373e8717`，位于 `nuttx/` 的
   `stm32c552vet6-devkit` 本地分支。
 - NuttX Apps 基线 `d14111ebeff7e8eb0512e63238883dece6842c05`。
 - 验证环境为 Arm GNU Toolchain 15.2.Rel1、Renode 1.17.0、Robot Framework 6.1。
