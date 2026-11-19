@@ -116,6 +116,13 @@ SRAM2 清零在独立的 `nsh-sram2` 镜像检查，两项通过。记录见
 要求的分组内存读延时。USART1 仍作为 NSH 控制台。实板待测主机枚举、
 多次插拔及传输恢复。结果见 `renode-upstream-usb/report.html`。
 
+## IWDG 复位仿真
+
+通过 Renode 写 IWDG 寄存器，以同一 `nsh-usb` 镜像运行两项验证。
+停止喂狗后仿真 CPU 复位并回到 NSH，定时喂狗时保持 shell 和 tmpfs
+标记文件。含 NSH、GPIO 和 USB 的同批回归共 11 项通过。实板待测
+实际超时时间、复位原因标志和启动恢复。
+
 ## 上游准备
 
 Apache NuttX 默认分支是 `master`。本次以 `7b4e437575` 为基线
@@ -124,7 +131,7 @@ Apache NuttX 默认分支是 `master`。本次以 `7b4e437575` 为基线
 | 本地候选分支 | 验证结果 |
 |---|---|
 | `codex/stm32c552-nsh-upstream` | C552 NSH 的 CMake 和 GNU Make 构建均通过，各跑 8 项 Renode 测试。CMake 下参考板 `nucleo-c562re:nsh` 编译通过。 |
-| `codex/stm32c552-port-upstream` | 已验证 LPDMA、SRAM2 和 144 MHz 组合的 Renode 回归。 |
+| `codex/stm32c552-port-upstream` | 已验证 LPDMA、SRAM2、144 MHz 组合、USB CDC 和 IWDG 的 Renode 回归。 |
 
 基线 `7b4e437575` 的 `foreach_inode()` 已要求第三个锁模式参数，
 `sync()` 调用仍传两个参数，C552 和参考板构建均失败。候选分支
