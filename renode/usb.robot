@@ -42,6 +42,9 @@ USB Device Answers Setup From Packet Memory And Keeps USART1
     Sleep    0.2
     Execute Command    sysbus.usb InjectEarlyCtr true
     Execute Command    sysbus.usb BulkOut 3 "7573622d6f6b0a"
+    Execute Command    pause
+    Execute Command    emulation RunFor "0.02"
+    Execute Command    start
     Wait For Line On Uart    ^usb-ok$    treatAsRegex=True
     ${early}=    Execute Command    sysbus.usb EarlyReads
     ${delayed}=    Execute Command    sysbus.usb DelayedPackets

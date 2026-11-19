@@ -123,3 +123,5 @@ SPI 轮询超时已在 48 MHz 和 144 MHz 的 LPDMA 镜像上通过，各 10 项
 IWDG 会真正复位仿真里的 Cortex-M。停止喂狗后 NSH 重新出现；持续喂狗则当前 shell 和 tmpfs 文件都还在。仿真计划里能做的项到这里结束。实机烧录和计划里先不做的项继续不做。
 
 `nsh-ostest` 在同一套 Renode 上跑完上游 ostest，退出状态为 0。验收看的是结束前没有 `ERROR` 或 `Assertion failed`，然后出现 `ostest_main: Exiting with status 0`。镜像使用已有的 SRAM2 堆，静态占用仍在 SRAM1。这覆盖调度、互斥、信号、POSIX 定时器、消息队列、FPU 上下文和轮转；工作队列子项没有打开。它不测量硬件时钟。
+
+GNU Make 原先把 M0 V2 USB 驱动放在仅 Cortex-M0 的源文件列表里，C552 是 Cortex-M33，Make 镜像因此没编进这只驱动。源文件改到与 CMake 相同的公共位置后，Make 构建的 `nsh-usb` 在 `usb.robot` 通过：批量 OUT 前先暂停并推进 20 ms，使 ES0661 的分组写完再读控制台。`EarlyReads` 为 0，`DelayedPackets` 为 1。同一次中断前，这份 Make 镜像的 IWDG 两项已经通过，没有重跑。
