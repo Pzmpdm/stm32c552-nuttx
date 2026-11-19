@@ -15,6 +15,11 @@ PSI Timeout Falls Back To 144 MHz HSIS
 PSIS Switch Timeout Falls Back To 144 MHz HSIS
     Verify 144 MHz Clock    4    1
 
+USB Kernel Clock Times Out And USART1 Stays At 144 MHz
+    # Fault bit 3 withholds divider-ready. CK48SEL must stay clear.
+    # The USART divider check is the existing 144 MHz console, not 48 MHz.
+    Verify 144 MHz Clock    8    3
+
 *** Keywords ***
 Verify 144 MHz Clock
     [Arguments]    ${faults}    ${source}
@@ -44,6 +49,16 @@ Verify 144 MHz Clock
     Should Be True    ((int($cfgr, 16) >> 3) & 3) == ${source}
     Should Be Equal As Integers    ${brr}    1250
     Should Be True    (int($uart_cr1, 16) & (1 << 15)) == 0
+    ${ck48}=    Evaluate    0 if int(${faults}) & 8 else (1 if int(${source}) == 3 else 2)
+    ${ccip}=    Execute Command    sysbus ReadDoubleWord 0x44020CDC
+    Should Be True    ((int($ccip, 16) >> 24) & 3) == ${ck48}
+    IF    ${ck48} == 1
+        Should Be True    int($cr1, 16) & (1 << 13)
+    ELSE IF    ${ck48} == 2
+        Should Be True    int($cr1, 16) & (1 << 5)
+    ELSE
+        Should Be True    (int($cr1, 16) & ((1 << 5) | (1 << 13))) == 0
+    END
     IF    ${source} == 3
         Should Be True    int($cr1, 16) & (1 << 17)
         Should Be True    int($cr1, 16) & (1 << 12)

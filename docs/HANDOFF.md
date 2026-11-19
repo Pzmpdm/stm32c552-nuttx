@@ -10,7 +10,7 @@
 |---|---|---|
 | `stm32c552vet6-devkit:nsh` | 48 MHz HSIDIV3、64 KiB SRAM1、USART1、LED、按键、tmpfs | 8 项通过 |
 | `stm32c552vet6-devkit:nsh-sram2` | 保持 48 MHz，将清零后的 64 KiB SRAM2 注册为第二堆区，带 ramtest | CMake 和 Make 各 10 项通过 |
-| `stm32c552vet6-devkit:nsh-hse` | 8 MHz HSE 驱动 144 MHz PSI，超时回退至 144 MHz HSIS | CMake 和 Make 各 4 项时钟测试通过 |
+| `stm32c552vet6-devkit:nsh-hse` | 8 MHz HSE 驱动 144 MHz PSI，超时回退至 144 MHz HSIS，并锁存 CK48 | Renode 5 项时钟测试通过 |
 | `stm32c552vet6-devkit:nsh-pwm` | 48 MHz、SRAM1，新增 PA0 TIM2_CH1 `/dev/pwm0` | CMake 和 Make 各 14 项通过，含六项 PWM 与八项 NSH/GPIO |
 | `stm32c552vet6-devkit:nsh-uart` | 在 PWM 配置上新增 USART2 `/dev/ttyS1`、termios 与 stty | CMake 和 Make 各 19 项通过，新增五项串口测试 |
 | `stm32c552vet6-devkit:nsh-i2c` | 在 UART/PWM 配置上新增 I²C1 `/dev/i2c1` 与 i2c 工具，NSH 参数上限 12 | CMake 和 Make 各 27 项通过，新增八项 I²C 测试 |
@@ -93,7 +93,7 @@ CMake 已有目录会保留展开后的 `.config`。换配置时使用新的构�
 | LPDMA CMake / Make | `build/board-lpdma-final-cmake/report.html`、`build/board-lpdma-final-make/report.html`，各 44 项通过 |
 | ADC 中断版回归 | `build/board-lpdma-final-adc/report.html`，43 项通过 |
 
-- RCC 门控以寄存器存储建模。高速时钟模型模拟就绪位和切换状态，并可注入 HSE/PSI/切换超时，UART 和 SysTick 采用固定 144 MHz。
+- RCC 门控以寄存器存储建模。高速时钟模型模拟就绪位和切换状态，并可注入 HSE、PSI、切换和 CK48 分频器就绪超时。CK48SEL 只在 PSIDIV3 或 HSIDIV3 就绪时锁存，HSE 不作为 48 MHz 来源。UART 和 SysTick 仍是标称频率，这不是对 48 MHz 的测量。
 - UART 复用 STM32F7 模型，其 FIFO 使能位会被忽略。
 - USART2 采用按 115200 8N1 帧间隔回送的字符级回环，PA2/PA3 AF7 单独检查寄存器。4 KiB 数据覆盖全部字节值及软件缓冲周转。三组波特率在关闭重开后核对，未验收端口保持打开时的在线改速、C5 FIFO/溢出/噪声及实际线速。
 - EXTI 复用 STM32WBA 模型，验证引脚路由、边沿和 NuttX 回调。C552 屏蔽与挂起寄存器的硬件语义仍待实测。
@@ -112,4 +112,4 @@ CMake 已有目录会保留展开后的 `.config`。换配置时使用新的构�
 
 `nsh-lpdma` 已分别叠到 SRAM2 和 144 MHz。中断版 `adc.robot` 仍只属于 `nsh-adc`：LPDMA 配置每次触发搬四个样本，不能用那套单样本计数验收。144 MHz 下 I²C 的 TIMINGR 仍是 48 MHz 表，SPI 内核时钟允许到 144 MHz；这两处都不代表线速已按新时钟重算。
 
-SPI 轮询超时已在 48 MHz 和 144 MHz 的 LPDMA 镜像上通过，各 10 项。LPDMA 自检缓冲已放到 SRAM2 堆上，原有 8 项加 1 项地址和释放检查通过。下一项在 RCC 模型里注入 USB 内核时钟的来源、就绪和超时，仍不建 USB 控制器。CDC ACM 和会复位 CPU 的 IWDG 仍在其后。实机烧录和计划里先不做的项继续不做。
+SPI 轮询超时已在 48 MHz 和 144 MHz 的 LPDMA 镜像上通过，各 10 项。LPDMA 自检缓冲已放到 SRAM2 堆上，原有 8 项加 1 项地址和释放检查通过。CK48 选择、分频器就绪和超时已在 `clock.robot` 通过，共 5 项，USART1 分频仍按 144 MHz 验收。下一项是寄存器级 USB 设备和 CDC ACM，控制台仍是 USART1。会复位 CPU 的 IWDG 仍在其后。实机烧录和计划里先不做的项继续不做。
