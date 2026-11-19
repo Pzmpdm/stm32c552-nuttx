@@ -81,6 +81,14 @@ SPI1 Keeps Unknown Chip Select Inactive And Resumes User Zero
     Exchange Pattern    spi exch -n0 -x4    12345678    1
     Check Controller Accesses    8    0    0
 
+SPI1 Returns When Receive Stays Empty And Completes The Next Exchange
+    Execute Command    sysbus.spi1 SuppressReceive true
+    Write Line To Uart    spi exch -x4 12345678
+    Wait For Line On Uart    SPI poll timeout    timeout=2
+    Wait For Prompt On Uart    nsh>    timeout=2
+    Execute Command    sysbus.spi1 SuppressReceive false
+    Exchange Pattern    spi exch -x4    12345678    1
+
 SPI1 Completes A Zero Length Exchange And Remains Usable
     Write Line To Uart    spi exch -x0
     Wait For Prompt On Uart    nsh>

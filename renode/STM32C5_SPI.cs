@@ -21,7 +21,29 @@ namespace Antmicro.Renode.Peripherals.SPI
             softwareNss = 0;
             configuration1 = 0;
             configuration2 = 0;
+            suppressReceive = false;
             ClearTrace();
+        }
+
+        // Withhold RXP so the driver's poll can time out. Dropping the
+        // unread frames on release keeps the following transfer separate.
+        // This is not an overrun or an SCK model.
+        public bool SuppressReceive
+        {
+            get { return suppressReceive; }
+            set
+            {
+                suppressReceive = value;
+                if(value)
+                {
+                    return;
+                }
+
+                for(var i = 0; i < 64 && (base.ReadDoubleWord(0x14) & 1) != 0; i++)
+                {
+                    base.ReadDoubleWord(0x30);
+                }
+            }
         }
 
         public void ClearTrace()
@@ -56,6 +78,10 @@ namespace Antmicro.Renode.Peripherals.SPI
             if(offset == 8) return configuration1;
             if(offset == 12) return configuration2;
             var result = base.ReadDoubleWord(offset);
+            if(offset == 0x14 && suppressReceive)
+            {
+                result &= ~1u;
+            }
             return offset == 0x30 && MsbFirst ? SwapDoubleWord(result) : result;
         }
 
@@ -129,6 +155,7 @@ namespace Antmicro.Renode.Peripherals.SPI
         public int ByteWrites { get; private set; }
         public int WordWrites { get; private set; }
         public int DoubleWordWrites { get; private set; }
+        private bool suppressReceive;
         // Renode 1.17 streams wide frames in little endian byte order.
         // SPI MSB-first sends the high byte first; bridge both TX and RX.
         private bool MsbFirst => (configuration2 & (1u << 23)) == 0;
