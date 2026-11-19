@@ -3,6 +3,7 @@ Test Setup    Boot UART NSH
 
 *** Variables ***
 ${ELF}    ${CURDIR}/../build/stm32c552-uart/nuttx
+${KERNEL_HZ}    48000000
 ${PLATFORM}    ${CURDIR}/stm32c552vet6-devkit-uart.repl
 
 *** Test Cases ***
@@ -145,7 +146,7 @@ UART2 Is Receiving
     Should Be True    int($nvic, 16) & (1 << 20)
     ${over8}=    Evaluate    bool(int($control, 16) & (1 << 15))
     ${divider}=    Evaluate    (int($divisor, 16) & 0xFFF0) + 2 * (int($divisor, 16) & 7) if $over8 else int($divisor, 16)
-    ${actual_baud}=    Evaluate    (96000000.0 if $over8 else 48000000.0) / $divider
+    ${actual_baud}=    Evaluate    ((2 * ${KERNEL_HZ}) if $over8 else ${KERNEL_HZ}) / $divider
     Should Be True    abs($actual_baud / int($baud) - 1) < 0.01
 
 UART2 Is Closed

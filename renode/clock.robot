@@ -1,5 +1,6 @@
 *** Variables ***
 ${ELF}    ${CURDIR}/../build/stm32c552-hse/nuttx
+${PLATFORM}    ${CURDIR}/stm32c552vet6-devkit-144mhz.repl
 
 *** Test Cases ***
 HSE Drives The 144 MHz PSI Clock
@@ -18,7 +19,14 @@ PSIS Switch Timeout Falls Back To 144 MHz HSIS
 Verify 144 MHz Clock
     [Arguments]    ${faults}    ${source}
     Execute Command    mach create "stm32c552-144mhz"
-    Execute Command    machine LoadPlatformDescription @${CURDIR}/stm32c552vet6-devkit-144mhz.repl
+    Execute Command    include @${CURDIR}/STM32C5_LPDMA.cs
+    Execute Command    include @${CURDIR}/STM32C5_ADC.cs
+    Execute Command    include @${CURDIR}/STM32C5_SPI.cs
+    Execute Command    include @${CURDIR}/SPIStatefulTarget.cs
+    Execute Command    include @${CURDIR}/STM32C5_TIM2.cs
+    Execute Command    include @${CURDIR}/STM32C5_I2C.cs
+    Execute Command    include @${CURDIR}/I2CRegisterMemory.cs
+    Execute Command    machine LoadPlatformDescription @${PLATFORM}
     Execute Command    sysbus LoadELF @${ELF}
     Execute Command    sysbus WriteDoubleWord 0x44020C40 ${faults}
     Create Terminal Tester    sysbus.usart1    timeout=12

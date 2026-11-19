@@ -1,6 +1,6 @@
 # STM32C552VET6 DevKit Core 交接文档
 
-更新时间为 2026-11-13。工作目录为 `/Users/pzmpdm/WorkSpace/Embedded_Project/NuttX/STM32C552`。
+更新时间为 2026-11-19。工作目录为 `/Users/pzmpdm/WorkSpace/Embedded_Project/NuttX/STM32C552`。
 
 ## 当前状态
 
@@ -17,6 +17,8 @@
 | `stm32c552vet6-devkit:nsh-spi` | 在 I²C/UART/PWM 配置上新增 SPI1 `/dev/spi1`、标准 spi 工具、8/16/32 位轮询交换与 GPIO CS | CMake 和 Make 各 36 项通过，新增九项 SPI 测试 |
 | `stm32c552vet6-devkit:nsh-adc` | 在 SPI 配置上新增 ADC1_IN8 `/dev/adc0`、标准 adc 示例与 12 位单次采样 | CMake 和 Make 各 43 项通过，新增七项 ADC 测试 |
 | `stm32c552vet6-devkit:nsh-lpdma` | 两个 LPDMA 实例、启动内存自检及 ADC1 四样本采集 | CMake 和 Make 各 44 项通过，新增八项 DMA 测试 |
+| `stm32c552vet6-devkit:nsh-lpdma-sram2` | 同一外设集保持 48 MHz，并加入清零后的 SRAM2 堆 | Renode 46 项通过，含 SRAM2 分配测试 |
+| `stm32c552vet6-devkit:nsh-lpdma-hse` | 同一外设集走 144 MHz，失败时回退 HSIS | Renode 48 项通过，含四项时钟测试 |
 
 默认配置中 SRAM1 从 `0x20000000` 开始，SRAM2 从 `0x20010000` 开始。Flash 为 `0x08000000` 起的 512 KiB。静态数据和初始堆留在 SRAM1。
 
@@ -108,4 +110,6 @@ CMake 已有目录会保留展开后的 `.config`。换配置时使用新的构�
 
 ## 接续工作
 
-下一阶段为 USB-C 设备。核对板载 D+/D−、VBUS 和 48 MHz USB 时钟源，接入 C552 USB FS 设备控制器，先验证 CDC ACM 枚举与收发，保留 USART1 控制台。同步检查 ES0661 的 USB 缓冲描述符更新勘误。回归包括 44 项 LPDMA 配置用例和 43 项 ADC 中断配置用例。每个通过的阶段在两个仓库各自提交，并更新本文件。
+`nsh-lpdma` 已分别叠到 SRAM2 和 144 MHz。中断版 `adc.robot` 仍只属于 `nsh-adc`：LPDMA 配置每次触发搬四个样本，不能用那套单样本计数验收。144 MHz 下 I²C 的 TIMINGR 仍是 48 MHz 表，SPI 内核时钟允许到 144 MHz；这两处都不代表线速已按新时钟重算。
+
+下一项是 SPI 轮询在接收标志停滞时超时返回，并还能开始下一次传输。USB 时钟、CDC ACM 和会复位 CPU 的 IWDG 仍在其后。实机烧录和计划里先不做的项继续不做。

@@ -1,0 +1,50 @@
+using "./stm32c552vet6-devkit-lpdma.repl"
+
+nvic:
+    systickFrequency: 144000000
+
+usart1:
+    frequency: 144000000
+
+usart2:
+    frequency: 144000000
+
+tim2:
+    frequency: 144000000
+
+flashif: Memory.MappedMemory @ sysbus 0x40022000
+    size: 0x400
+
+// Same ready/switch model as the 144 MHz NSH platform. Fault bits are
+// written at 0x40: HSE (0), PSI (1), PSIS switch (2).
+clock: Python.PythonPeripheral @ sysbus 0x44020C00
+    size: 0x44
+    initable: true
+    script: '''
+if request.IsInit:
+    registers = {0x00: 0x22}
+elif request.IsWrite:
+    offset = request.Offset
+    value = request.Value
+    if offset == 0x00:
+        ready = (1 << 4) | (1 << 12) | (1 << 17)
+        value &= ~ready
+        faults = registers.get(0x40, 0)
+        if value & (1 << 0):
+            value |= 1 << 4
+        if value & (1 << 16) and not faults & 1:
+            value |= 1 << 17
+        if value & (1 << 8) and value & (1 << 17) and not faults & 2:
+            value |= 1 << 12
+    elif offset == 0x1c:
+        source = value & 3
+        ready_bit = [5, 4, 17, 12][source]
+        status = registers.get(0x1c, 0) & 0x18
+        switch_blocked = source == 3 and registers.get(0x40, 0) & 4
+        if registers[0] & (1 << ready_bit) and not switch_blocked:
+            status = source << 3
+        value = (value & ~0x18) | status
+    registers[offset] = value
+elif request.IsRead:
+    request.Value = registers.get(request.Offset, 0)
+'''

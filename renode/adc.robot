@@ -3,6 +3,7 @@ Test Setup    Boot ADC NSH
 
 *** Variables ***
 ${ELF}    ${CURDIR}/../build/stm32c552-adc/nuttx
+${KERNEL_HZ}    48000000
 ${PLATFORM}    ${CURDIR}/stm32c552vet6-devkit-adc.repl
 
 *** Test Cases ***
@@ -64,7 +65,8 @@ ADC1 Waits For The Conversion IRQ And Delivers The Pending Sample
     Should Be True    (int($isr, 16) & 0xC) == 0xC
     Should Be True    (int($ier, 16) & 0x14) == 0x14
     Should Be True    int($gate, 16) & 0x400
-    Should Be True    (int($clock, 16) & 0x7C00) == 0x2000
+    ${adc_clock}=    Evaluate    0x2000 if int(${KERNEL_HZ}) == 48000000 else 0x4000
+    Should Be True    (int($clock, 16) & 0x7C00) == ${adc_clock}
     ADC Counter Equals    LastConfiguration    0
     ADC Counter Equals    LastPreselection    0x100
     ADC Counter Equals    LastSequence    0x200

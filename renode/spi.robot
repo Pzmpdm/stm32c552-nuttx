@@ -4,6 +4,7 @@ Test Setup    Boot SPI NSH
 *** Variables ***
 ${ELF}    ${CURDIR}/../build/stm32c552-spi/nuttx
 ${PLATFORM}    ${CURDIR}/stm32c552vet6-devkit-spi.repl
+${KERNEL_HZ}    48000000
 
 *** Test Cases ***
 SPI1 Is Registered With Inactive GPIO Chip Select
@@ -49,13 +50,8 @@ SPI1 Applies All Four Clock Modes Across Reopen
     Check Controller Accesses    16    0    0
 
 SPI1 Selects A Prescaler And Caps Requests At Twenty Four MHz
-    FOR    ${frequency}    ${prescaler}    IN
-    ...    100000    7
-    ...    187500    7
-    ...    1000000    5
-    ...    12000000    1
-    ...    24000000    0
-    ...    48000000    0
+    FOR    ${frequency}    IN    100000    187500    1000000    12000000    24000000    48000000
+        ${prescaler}=    Evaluate    next((shift - 1 for shift in range(1, 8) if min(${frequency}, 24000000) >= (${KERNEL_HZ} >> shift)), 7) if min(${frequency}, 24000000) < ${KERNEL_HZ} else 0
         Exchange Pattern    spi exch -f${frequency} -x4    0012ABFF    1
         ${cfg}=    Execute Command    sysbus ReadDoubleWord 0x40013008
         Should Be True    ((int($cfg, 16) >> 28) & 7) == int($prescaler)

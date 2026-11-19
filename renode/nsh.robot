@@ -1,6 +1,7 @@
 *** Variables ***
 ${ELF}       ${CURDIR}/../build/stm32c552/nuttx
 ${PLATFORM}    ${CURDIR}/stm32c552vet6-devkit.repl
+${KERNEL_HZ}    48000000
 
 *** Test Cases ***
 NSH boots and executes commands over USART1
@@ -42,7 +43,7 @@ USART1 Is Configured On PA9 And PA10
     Should Be True    ((int($gpio_af, 16) >> 4) & 0xFF) == 0x77
     # Decode USARTDIV for either oversampling mode and check 115200 baud.
     ${brr}=    Evaluate    int($uart_brr, 16)
-    ${baud}=    Evaluate    96000000 / (($brr & 0xFFF0) | (($brr & 7) << 1)) if int($uart_cr1, 16) & 0x8000 else 48000000 / $brr
+    ${baud}=    Evaluate    (2 * ${KERNEL_HZ}) / (($brr & 0xFFF0) | (($brr & 7) << 1)) if int($uart_cr1, 16) & 0x8000 else ${KERNEL_HZ} / $brr
     Should Be True    114048 <= ${baud} <= 116352
 
 Virtual Time In Seconds

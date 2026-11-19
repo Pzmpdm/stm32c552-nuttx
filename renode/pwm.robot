@@ -4,6 +4,7 @@ Test Setup    Boot PWM NSH
 *** Variables ***
 ${ELF}    ${CURDIR}/../build/stm32c552-pwm/nuttx
 ${PLATFORM}    ${CURDIR}/stm32c552vet6-devkit-pwm.repl
+${KERNEL_HZ}    48000000
 
 *** Test Cases ***
 PWM Device Is Registered Without Starting The Timer
@@ -76,7 +77,7 @@ PWM Registers Match
     # Renode tags OC1PE as unimplemented and reads it back as zero.
     Should Be True    (int($compare_mode, 16) & 0xF7) == 0x60
     Should Be True    (int($enable, 16) & 3) == 1
-    ${actual_frequency}=    Evaluate    48000000.0 / (int($prescaler, 16) + 1) / (int($reload, 16) + 1)
+    ${actual_frequency}=    Evaluate    float(${KERNEL_HZ}) / (int($prescaler, 16) + 1) / (int($reload, 16) + 1)
     ${actual_duty}=    Evaluate    int($compare, 16) / (int($reload, 16) + 1)
     Should Be True    abs($actual_frequency / int($frequency) - 1) < 0.002
     Should Be True    abs($actual_duty - int($duty) / 100.0) < 0.001
