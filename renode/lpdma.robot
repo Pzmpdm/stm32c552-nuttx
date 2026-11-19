@@ -95,6 +95,43 @@ ADC1 Cancels A Stalled DMA Block And Reopens
     DMA Counter Equals    1    Suspensions    1
     DMA Counter Equals    1    PeripheralBeats    4
 
+LPDMA Memory Self-Test Uses SRAM2 And Returns The Heap
+    Execute Command    $firmware=@${CURDIR}/../build/stm32c552-lpdma-sram2/nuttx
+    Execute Command    $platform=@${CURDIR}/stm32c552vet6-devkit-lpdma.repl
+    Execute Command    include @${CURDIR}/boot.resc
+    Create Terminal Tester    sysbus.usart1    timeout=4
+    Start Emulation
+    Wait For Line On Uart    LPDMA1 memory test: 8 channels OK
+    Wait For Line On Uart    LPDMA2 memory test: 4 channels OK
+    ${where}=    Wait For Line On Uart    LPDMA SRAM2 ([0-9a-f]{8}) ([0-9a-f]{8}) ([0-9a-f]{8})    treatAsRegex=True
+    ${src}=    Evaluate    int($where.Groups[0], 16)
+    ${dst}=    Evaluate    int($where.Groups[1], 16)
+    ${gate}=    Evaluate    int($where.Groups[2], 16)
+    Should Be True    0x20010000 <= ${src} and ${src} + 128 <= 0x20020000
+    Should Be True    0x20010000 <= ${dst} and ${dst} + 128 <= 0x20020000
+    Execute Command    pause
+    ${before}=    Evaluate    ${dst} - 4
+    ${after}=    Evaluate    ${dst} + 128
+    ${guard0}=    Execute Command    sysbus ReadDoubleWord ${before}
+    ${guard1}=    Execute Command    sysbus ReadDoubleWord ${after}
+    Should Be Equal As Integers    ${guard0}    0xa5a5a5a5
+    Should Be Equal As Integers    ${guard1}    0xa5a5a5a5
+    FOR    ${j}    IN RANGE    32
+        ${expected}=    Evaluate    (0x13579bdf ^ ((0x01020307 * ${j}) & 0xffffffff) ^ (3 << 16)) & 0xffffffff
+        ${srcaddr}=    Evaluate    ${src} + 4 * ${j}
+        ${dstaddr}=    Evaluate    ${dst} + 4 * ${j}
+        ${got}=    Execute Command    sysbus ReadDoubleWord ${srcaddr}
+        ${copied}=    Execute Command    sysbus ReadDoubleWord ${dstaddr}
+        Should Be Equal As Integers    ${got}    ${expected}
+        Should Be Equal As Integers    ${copied}    ${expected}
+    END
+    Execute Command    sysbus WriteDoubleWord ${gate} 1
+    Execute Command    start
+    ${released}=    Wait For Line On Uart    LPDMA SRAM2 released (\\d+) (\\d+)    treatAsRegex=True
+    Should Be Equal    ${released.Groups[0]}    ${released.Groups[1]}
+    Wait For Line On Uart    NuttShell (NSH)
+    Wait For Prompt On Uart    nsh>
+
 *** Keywords ***
 Load LPDMA Board
     Execute Command    $firmware=@${ELF}
