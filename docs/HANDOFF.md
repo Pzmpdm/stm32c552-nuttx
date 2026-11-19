@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-前三阶段的仿真已完成启动和 NSH、板载 GPIO、SRAM2 和高速时钟。第四阶段已完成 TIM2_CH1 PWM（PA0/H2.3）、USART2（PA2/PA3，H2.1/H2.6）、I²C1（PB8/PB9，H3.21/H3.20）、SPI1（PA5/PA6/PA7，PA4 片选）、ADC1_IN8（PC0/H3.14）和 LPDMA 六个子项。下一阶段为 USB-C 设备与 CDC ACM。实体板验收待连接 SWD 探针与 3.3 V USB 转串口。
+前三阶段的仿真已完成启动和 NSH、板载 GPIO、SRAM2 和高速时钟。第四阶段已完成 TIM2_CH1 PWM（PA0/H2.3）、USART2（PA2/PA3，H2.1/H2.6）、I²C1（PB8/PB9，H3.21/H3.20）、SPI1（PA5/PA6/PA7，PA4 片选）、ADC1_IN8（PC0/H3.14）和 LPDMA 六个子项。仿真能做的 USB 设备与会复位 CPU 的 IWDG 也已完成。实体板验收待连接 SWD 探针与 3.3 V USB 转串口。
 
 | 配置 | 用途 | Renode 结果 |
 |---|---|---|
@@ -19,6 +19,7 @@
 | `stm32c552vet6-devkit:nsh-lpdma` | 两个 LPDMA 实例、启动内存自检及 ADC1 四样本采集 | CMake 和 Make 各 44 项通过，新增八项 DMA 测试 |
 | `stm32c552vet6-devkit:nsh-lpdma-sram2` | 同一外设集保持 48 MHz，并加入清零后的 SRAM2 堆 | Renode 46 项通过，含 SRAM2 分配测试 |
 | `stm32c552vet6-devkit:nsh-lpdma-hse` | 同一外设集走 144 MHz，失败时回退 HSIS | Renode 48 项通过，含四项时钟测试 |
+| `stm32c552vet6-devkit:nsh-usb` | 48 MHz NSH，USART1 仍是控制台，CDC ACM 为 `/dev/ttyACM0` | `usb.robot` 1 项通过 |
 
 默认配置中 SRAM1 从 `0x20000000` 开始，SRAM2 从 `0x20010000` 开始。Flash 为 `0x08000000` 起的 512 KiB。静态数据和初始堆留在 SRAM1。
 
@@ -106,10 +107,16 @@ CMake 已有目录会保留展开后的 `.config`。换配置时使用新的构�
 - SPI 复用 Renode CFG1/CFG2 控制器，补齐配置读回和宽帧 MSB 字节顺序。动态从设备受 PA4 GPIO CS 控制；检查访问位宽、16 字节 FIFO 余量及配置写入时机。接收标志被模型压住时，轮询在 1000 次读之内返回 `ETIMEDOUT`，放开后下一次交换仍成功。原模型 FIFO 无限长，这不是 SCK、溢出或线速验收。SPI_SEND 仍未单独验收。
 - ADC 模型使用可变电压和理想 3.3 V 参考，覆盖转换结果、重复触发、IRQ 送数及稳压器/校准/就绪故障恢复。采样时间由寄存器检查，实际参考电压、精度、噪声和转换时序等待实板测量。
 - LPDMA 模型按真实地址搬运数据，验证 12 通道、ADC 请求和完成中断，以及错误、超时后恢复。`nsh-lpdma-sram2` 的自检缓冲从 SRAM2 堆分配；仿真读回源、目标和两端哨兵，释放后 `fordblks` 回到分配前。总线仲裁、速度和低功耗仍待实板。
+- USB 复用现有 M0 V2 设备控制器。分组内存按真实地址读写。脚本主机完成复位、SETUP 设备描述符、SET_ADDRESS、SET_CONFIGURATION，以及 CDC 的批量 IN/OUT。ES0661 的完成中断可以先于最后一次分组内存写入；驱动在读之前等 2 µs，提前读会计入 `EarlyReads`。这项通过时 `EarlyReads` 为 0。它不代表 PHY、chirp、VBUS 或线速。
+- IWDG 使用名义 32 kHz 和 /256 分频。停止喂狗后机器复位，NSH 提示符再次出现；在超时前反复写入重载键则不复位，已有的 tmpfs 文件还在。这不是实测的 LSI，模型也不记录复位原因标志。
 - 实物尚待烧录读回、反复冷启动、NRST、时钟测量、波形验证和 30 分钟运行。
 
 ## 接续工作
 
 `nsh-lpdma` 已分别叠到 SRAM2 和 144 MHz。中断版 `adc.robot` 仍只属于 `nsh-adc`：LPDMA 配置每次触发搬四个样本，不能用那套单样本计数验收。144 MHz 下 I²C 的 TIMINGR 仍是 48 MHz 表，SPI 内核时钟允许到 144 MHz；这两处都不代表线速已按新时钟重算。
 
-SPI 轮询超时已在 48 MHz 和 144 MHz 的 LPDMA 镜像上通过，各 10 项。LPDMA 自检缓冲已放到 SRAM2 堆上，原有 8 项加 1 项地址和释放检查通过。CK48 选择、分频器就绪和超时已在 `clock.robot` 通过，共 5 项，USART1 分频仍按 144 MHz 验收。下一项是寄存器级 USB 设备和 CDC ACM，控制台仍是 USART1。会复位 CPU 的 IWDG 仍在其后。实机烧录和计划里先不做的项继续不做。
+SPI 轮询超时已在 48 MHz 和 144 MHz 的 LPDMA 镜像上通过，各 10 项。LPDMA 自检缓冲已放到 SRAM2 堆上，原有 8 项加 1 项地址和释放检查通过。CK48 选择、分频器就绪和超时已在 `clock.robot` 通过，共 5 项，USART1 分频仍按 144 MHz 验收。
+
+`nsh-usb` 的 CDC ACM 已在寄存器级模型上通过：描述符来自分组内存，批量 OUT 在 ES0661 延迟之后进入 `/dev/ttyACM0`，批量 IN 能从分组内存读回，控制台仍是 USART1。接入 USB 类型之后，LPDMA 栈 46 项通过；ADC 中断栈按当前源重新编译后 44 项通过，其中 7 项仍是原来的单样本中断验收。
+
+IWDG 会真正复位仿真里的 Cortex-M。停止喂狗后 NSH 重新出现；持续喂狗则当前 shell 和 tmpfs 文件都还在。仿真计划里能做的项到这里结束。实机烧录和计划里先不做的项继续不做。

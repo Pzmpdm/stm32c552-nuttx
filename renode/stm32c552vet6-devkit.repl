@@ -25,6 +25,11 @@ usart1: UART.STM32F7_USART @ sysbus 0x40013800
     frequency: 48000000
     IRQ -> nvic@51
 
+// LSI is the nominal 32 kHz. A timeout resets the machine. The reload key
+// restarts the counter. This is not a measured oscillator or a reset-reason bit.
+iwdg: Timers.STM32C5_IWDG @ sysbus 0x40003000
+    frequency: 32000
+
 gpioa: GPIOPort.STM32_GPIOPort @ sysbus <0x42020000, +0x400>
     modeResetValue: 0xEBFFFFFF
     pullUpPullDownResetValue: 0x24000000

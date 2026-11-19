@@ -1,0 +1,7 @@
+using "./stm32c552vet6-devkit.repl"
+
+usb: USB.STM32C5_USB @ sysbus 0x40016000
+    IRQ -> nvic@62
+
+usbram: USB.STM32C5_USBRam @ sysbus 0x40016400
+    usb: usb

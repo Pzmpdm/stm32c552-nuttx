@@ -31,6 +31,7 @@ Verify 144 MHz Clock
     Execute Command    include @${CURDIR}/STM32C5_TIM2.cs
     Execute Command    include @${CURDIR}/STM32C5_I2C.cs
     Execute Command    include @${CURDIR}/I2CRegisterMemory.cs
+    Execute Command    include @${CURDIR}/STM32C5_IWDG.cs
     Execute Command    machine LoadPlatformDescription @${PLATFORM}
     Execute Command    sysbus LoadELF @${ELF}
     Execute Command    sysbus WriteDoubleWord 0x44020C40 ${faults}
