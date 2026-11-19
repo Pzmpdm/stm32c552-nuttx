@@ -21,6 +21,10 @@ CubeProgrammer 仍返回 `DEV_CONNECT_ERR`，ST-Link VCP 也未出现。
 复测见 `probe-after-replug.log`。下一步单独连接探针，检查探针 USB
 接口能否启动，再接回 SWD。
 
+随后 VCP 恢复为 `/dev/cu.usbmodem1103`，SWD 读回
+`DBGMCU_IDCODE=0x1003644e`。探针此时报告 0.12 V，仍待确认实际
+D_3V3 和 VTref。记录见 `probe-after-vcp-returned.log`。
+
 板上 H4.1 为 D_3V3，H4.8 为 GND。继续前确认以 USB-C 为板供电，
 H4.1 接探针 VTref 并共地，确认板上 D_3V3 和探针参考电压稳定。
 若探针仍报告异常，直接测量 H4.1 对 H4.8 的电压，检查探针 VTref 连通性。
@@ -90,6 +94,20 @@ CMake 镜像通过 44 项 Renode 回归，含 7 项 ADC 测试。覆盖五个输
 就绪失败后重新打开。日志见 `renode-upstream-adc/report.html`。
 实板待测参考电压、已知输入的采样结果及重复打开。
 
+## LPDMA 与 SRAM2 上游候选
+
+移植了两组 LPDMA 的 12 通道内存自检、ADC1 四样本批量采集和错误恢复。
+SRAM2 自检去掉了对调试器写入的等待，DMA 停止后释放缓冲并继续进入
+NSH。固件验证搬运内容和两端哨兵，Renode 检查地址范围、完成中断及
+释放前后的堆容量。若 DMA 无法停止，保留缓冲，避免再次分配仍被使用的内存。
+原移植修复为 `3f15c31c58`，上游候选修复为 `20a3f1d409`。
+
+上游 CMake 镜像在 SRAM2 配置通过 46 项，在 144 MHz 配置通过 51 项。
+SRAM2 清零在独立的 `nsh-sram2` 镜像检查，两项通过。记录见
+`renode-upstream-lpdma-sram2-regression/report.html`、
+`renode-upstream-lpdma-hse-final/report.html` 和
+`renode-upstream-sram2/report.html`。
+
 ## 上游准备
 
 Apache NuttX 默认分支是 `master`。本次以 `7b4e437575` 为基线
@@ -98,7 +116,7 @@ Apache NuttX 默认分支是 `master`。本次以 `7b4e437575` 为基线
 | 本地候选分支 | 验证结果 |
 |---|---|
 | `codex/stm32c552-nsh-upstream` | C552 NSH 的 CMake 和 GNU Make 构建均通过，各跑 8 项 Renode 测试。CMake 下参考板 `nucleo-c562re:nsh` 编译通过。 |
-| `codex/stm32c552-port-upstream` | 已移植至 ADC1 中断采样。LPDMA 批量采样及后续配置仍在原移植分支。 |
+| `codex/stm32c552-port-upstream` | 已验证 LPDMA、SRAM2 和 144 MHz 组合的 Renode 回归。 |
 
 基线 `7b4e437575` 的 `foreach_inode()` 已要求第三个锁模式参数，
 `sync()` 调用仍传两个参数，C552 和参考板构建均失败。候选分支
