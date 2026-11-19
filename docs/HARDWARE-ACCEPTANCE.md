@@ -12,6 +12,12 @@
 | USART1 | 主机枚举出 ST-Link VCP `/dev/cu.usbmodem11303`。以 115200 8N1 监听原有固件两秒无输出，VCP 到目标 USART1 的接线待现场确认。 |
 | 烧录和运行 | 供电和 VTref 未确认，暂停写 Flash。NSH 和板载外设运行均待测。 |
 
+续测时 macOS 只枚举了 ST-Link 的 USB 设备（`0483:374b`）。libusb
+读到配置为 0，设置配置 1 失败。对该探针执行一次 USB 软件复位后，
+CubeProgrammer 仍返回 `DEV_CONNECT_ERR`，ST-Link VCP 也未出现。
+本次无法读取 VTref 或 MCU。重新插拔探针的主机 USB 线后从 SWD 识别开始。
+原始结果见 `probe-resume.log` 和 `probe-resume-after-usb-reset.log`。
+
 板上 H4.1 为 D_3V3，H4.8 为 GND。继续前确认以 USB-C 为板供电，
 H4.1 接探针 VTref 并共地，确认板上 D_3V3 和探针参考电压稳定。
 若探针仍报告异常，直接测量 H4.1 对 H4.8 的电压，检查探针 VTref 连通性。
@@ -52,6 +58,20 @@ Apache NuttX 主线的首次 Renode 回归中，屏蔽 I²C1 事件 IRQ 后，
 I²C1 实板仍待接 3.3 V 上拉和从设备，验证 100/400 kHz、重复起始、
 NACK 及超时恢复。
 
+## SPI1 上游候选
+
+复用 Apache NuttX 现有的 SPI v5 驱动。C552 的 CMake `nsh-spi` 镜像
+通过 37 项 Renode 回归，覆盖 8/16/32 位帧、四种模式、分频和片选。
+注入接收超时后，两笔传输在第一笔中止时释放片选，下一次交换成功。
+缺少上层错误传递的镜像在该用例发起了两次传输。原移植分支的
+`nsh-lpdma` 镜像也通过改后的 10 项 SPI 用例。
+
+SPI 错误传递和板级适配分别提交为 `2c998ff2df`、`ca251b14a6`。
+同一共享驱动通过 STM32N6570-DK `nsh` CMake 编译。
+日志见 `renode-upstream-spi-final/report.html`、
+`renode-spi-without-error-propagation/report.html` 和
+`build-upstream-spi-n6.log`。实板待测 SCK、片选、位宽和从设备收发。
+
 ## 上游准备
 
 Apache NuttX 默认分支是 `master`。本次以 `7b4e437575` 为基线
@@ -60,7 +80,7 @@ Apache NuttX 默认分支是 `master`。本次以 `7b4e437575` 为基线
 | 本地候选分支 | 验证结果 |
 |---|---|
 | `codex/stm32c552-nsh-upstream` | C552 NSH 的 CMake 和 GNU Make 构建均通过，各跑 8 项 Renode 测试。CMake 下参考板 `nucleo-c562re:nsh` 编译通过。 |
-| `codex/stm32c552-port-upstream` | 已移植至 I²C1。SPI 移植遇到上游已公共化的 SPI v5 驱动，后续适配需沿用当前 `int` 返回契约复用该驱动。SPI 和后续配置仍在原移植分支。 |
+| `codex/stm32c552-port-upstream` | 已移植至 SPI1，使用上游 SPI v5 的错误返回接口。ADC1 及后续配置仍在原移植分支。 |
 
 基线 `7b4e437575` 的 `foreach_inode()` 已要求第三个锁模式参数，
 `sync()` 调用仍传两个参数，C552 和参考板构建均失败。候选分支

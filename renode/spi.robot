@@ -83,11 +83,14 @@ SPI1 Keeps Unknown Chip Select Inactive And Resumes User Zero
 
 SPI1 Returns When Receive Stays Empty And Completes The Next Exchange
     Execute Command    sysbus.spi1 SuppressReceive true
-    Write Line To Uart    spi exch -x4 12345678
-    Wait For Line On Uart    SPI poll timeout    timeout=2
+    Write Line To Uart    spi exch -x4 -r2 1234567889ABCDEF
     Wait For Prompt On Uart    nsh>    timeout=2
+    ${selects}=    Execute Command    sysbus.spi1.target Selects
+    ${deselects}=    Execute Command    sysbus.spi1.target Deselects
+    Should Be Equal As Integers    ${selects}    1
+    Should Be Equal As Integers    ${deselects}    1
     Execute Command    sysbus.spi1 SuppressReceive false
-    Exchange Pattern    spi exch -x4    12345678    1
+    Exchange Pattern    spi exch -x4 -r1    12345678    1
 
 SPI1 Completes A Zero Length Exchange And Remains Usable
     Write Line To Uart    spi exch -x0
