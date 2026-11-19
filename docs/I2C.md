@@ -10,22 +10,22 @@
 | 外设地址 | `0x40005400` |
 | 外部 IRQ | 事件 44、错误 45 |
 | 门控 / 复位 | RCC APB1LENR `0x44020C9C` bit 21 / APB1LRSTR `0x44020C74` bit 21 |
-| Kernel clock | CCIPR2 `0x44020CDC` bits 1:0 主动选择 PCLK1，48 MHz |
+| Kernel clock | CCIPR2 `0x44020CDC` bits 1:0 选择 PCLK1，48 或 144 MHz |
 | 当前驱动入口 | `stm32_i2cbus_initialize(1)`，公共板级初始化注册 `/dev/i2c1` |
 | 当前范围 | 7 位地址、控制器模式、中断传输、100/400 kHz 请求档位，无 DMA |
 
-引脚、IRQ、RCC、CR1/CR2、TIMINGR、ISR/ICR、RXDR/TXDR 布局与 ST 的 C552 设备头文件核对。复用公共 STM32 I²C v2 驱动，补充 C5 的 32 位寄存器访问、RCC 和 IRQ 映射。仅开放 I²C1，禁用 C5 的目标模式选择。其他频率、10 位地址及不合法的连续消息在拿锁前返回错误；48 MHz 以外的内核时钟在编译时拒绝。
+引脚、IRQ、RCC、CR1/CR2、TIMINGR、ISR/ICR、RXDR/TXDR 布局与 ST 的 C552 设备头文件核对。复用公共 STM32 I²C v2 驱动，补充 C5 的 32 位寄存器访问、RCC 和 IRQ 映射。仅开放 I²C1，禁用 C5 的目标模式选择。其他频率、10 位地址及不合法的连续消息在拿锁前返回错误。内核时钟只接受 48 和 144 MHz。
 
 PB8/PB9 不与已有 PA0 PWM、PA2/PA3 USART2、PA9/PA10 控制台冲突。实板需要外接至 3.3 V 的上拉，按总线电容选择阻值，并确认上升时间不超过 300 ns、下降时间不超过 100 ns。
 
 ## 时序与勘误
 
-时序按 [RM0522](https://www.st.com/resource/en/reference_manual/rm0522-stm32c5-series-armbased-32bit-mcus-stmicroelectronics.pdf) 配置，采用保守的 SCL 高低计数。模拟和数字滤波均关闭，PRESC=2，计数单位为 62.5 ns。
+时序采用保守的 SCL 高低计数，模拟和数字滤波均关闭。48 MHz 时 PRESC=2，144 MHz 时 PRESC=8，两档都保留 62.5 ns 的计数单位。 [RM0522](https://www.st.com/resource/en/reference_manual/rm0522-stm32c5-series-armbased-32bit-mcus-stmicroelectronics.pdf)
 
-| 请求档位 | TIMINGR | SCLL / SCLH | SDADEL / SCLDEL | 计数器低/高时长 |
-|---|---|---|---|---|
-| 100 kHz | `0x20814F4F` | 79 / 79 | 1 / 8 | 5 µs / 5 µs |
-| 400 kHz | `0x20611214` | 20 / 18 | 1 / 6 | 1.3125 µs / 1.1875 µs |
+| 请求档位 | TIMINGR，48 MHz | TIMINGR，144 MHz | SCLL / SCLH | SDADEL / SCLDEL | 计数器低/高时长 |
+|---|---|---|---|---|---|
+| 100 kHz | `0x20814F4F` | `0x80814F4F` | 79 / 79 | 1 / 8 | 5 µs / 5 µs |
+| 400 kHz | `0x20611214` | `0x80611214` | 20 / 18 | 1 / 6 | 1.3125 µs / 1.1875 µs |
 
 SCLDEL 对应 562.5 ns、437.5 ns，分别覆盖所述上升时间与标准/快速模式的数据建立时间。同步延迟、信号斜率及目标设备的时钟拉伸会降低实际线速。这是 100/400 kHz 模式的保守时序配置，不能由请求频率或仿真寄存器推定实板的精确 SCL 频率。滤波、时序和总线负载仍需示波器验证。
 
@@ -83,6 +83,6 @@ CMake 和 GNU Make 固件各运行 27 项测试，包含八项 I²C、五项 USA
 - GPIO 模型忽略 OTYPER，I²C 模型忽略 TIMINGR 和滤波字段。测试确认软件写入，不能证明开漏电气行为、SCL 波形或滤波效果。
 - RCC 门控使用寄存器存储，不模拟真实复位、时钟停止和上拉。错误路径中 BERR 是仿真注入，NACK 来自无从设备地址，超时来自 IRQ 屏蔽。
 - 已测载荷为单/双字节写入和最长 256 字节读取；未验收更长写入、目标模式、多控制器、10 位地址、DMA、电源管理或物理总线卡死后的 GPIO 解锁。
-- 尚未验证其他总线错误、仲裁丢失、噪声、时钟拉伸极限，以及高速时钟/SRAM2 与此配置的组合。
+- 尚未验证其他总线错误、仲裁丢失、噪声及时钟拉伸极限。
 - 实板待确认上拉与电平、SCL 频率和建立保持时间，再连接真实器件验证读写、重复起始、NACK、长时间运行及恢复。
 - SPI1 子项已完成仿真验收，见 [SPI1 记录](SPI.md)。下一子项为 PC0 ADC1_IN8。

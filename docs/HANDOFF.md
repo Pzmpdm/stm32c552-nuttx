@@ -42,7 +42,7 @@
 - 用户按键 SW2 在 PC13，内部上拉，低电平按下，设备为 `/dev/buttons`，NSH 命令为 `buttons`。
 - PWM 为 PA0 AF1（H2.3），设备为 `/dev/pwm0`。`pwm -f 1000 -d 50 -t 5` 输出五秒 PWM，结束后 PA0 回到浮空输入。详细接口和测试见 [PWM 记录](PWM.md)。
 - USART2 TX 为 PA2 AF7（H2.1），RX 为 PA3 AF7（H2.6），设备 `/dev/ttyS1`。默认 115200 8N1，无流控及 DMA，用 `stty` 设置 raw 模式。详细测试及限制见 [USART2 记录](UART.md)。
-- I²C1 SCL 为 PB8 AF4（H3.21），SDA 为 PB9 AF4（H3.20），设备 `/dev/i2c1`。需要外部 3.3 V 上拉；当前只验收 48 MHz 内核下的 100/400 kHz 档位。详见 [I²C1 记录](I2C.md)。
+- I²C1 SCL 为 PB8 AF4（H3.21），SDA 为 PB9 AF4（H3.20），设备 `/dev/i2c1`。需要外部 3.3 V 上拉。100/400 kHz 档位支持 48 和 144 MHz 内核时钟，实际线速待测。详见 [I²C1 记录](I2C.md)。
 - SPI1 SCK PA5 / MISO PA6 / MOSI PA7 AF5（H2.8/H2.7/H2.10），PA4（H2.5）为低有效 GPIO CS，设备 `/dev/spi1`。当前为 48 MHz 内核、MSB 优先、轮询全双工；SCK 请求上限 24 MHz，最低档 187.5 kHz。见 [SPI1 记录](SPI.md)。
 - ADC1_IN8 为 PC0（H3.14），设备 `/dev/adc0`，内核时钟 12 MHz，12 位软件触发与 EOC 中断。`adc -n1` 输出通道号和原始码值。详见 [ADC1 记录](ADC.md)。
 - LPDMA1/2 共 12 个通道。`nsh-lpdma` 启动时自检内存搬运，`adc -n1` 通过 LPDMA1 采集四个 IN8 样本。见 [LPDMA 记录](LPDMA.md)。
@@ -114,7 +114,7 @@ CMake 已有目录会保留展开后的 `.config`。换配置时使用新的构�
 
 ## 接续工作
 
-`nsh-lpdma` 已分别叠到 SRAM2 和 144 MHz。中断版 `adc.robot` 仍只属于 `nsh-adc`：LPDMA 配置每次触发搬四个样本，不能用那套单样本计数验收。144 MHz 下 I²C 的 TIMINGR 仍是 48 MHz 表，SPI 内核时钟允许到 144 MHz；这两处都不代表线速已按新时钟重算。
+`nsh-lpdma` 已分别叠到 SRAM2 和 144 MHz。中断版 `adc.robot` 用于 `nsh-adc`，LPDMA 配置每次触发搬四个样本，使用 `lpdma.robot` 验收。144 MHz 下 I²C 调整了 TIMINGR 的 PRESC，SPI 保留 24 MHz SCK 请求上限。两条总线的线速仍待上板测量。
 
 SPI 轮询超时已在 48 MHz 和 144 MHz 的 LPDMA 镜像上通过，各 10 项。LPDMA 自检缓冲已放到 SRAM2 堆上，原有 8 项加 1 项地址和释放检查通过。CK48 选择、分频器就绪和超时已在 `clock.robot` 通过，共 5 项，USART1 分频仍按 144 MHz 验收。
 

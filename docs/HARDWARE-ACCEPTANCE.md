@@ -61,6 +61,12 @@ Apache NuttX 主线的首次 Renode 回归中，屏蔽 I²C1 事件 IRQ 后，
 I²C1 实板仍待接 3.3 V 上拉和从设备，验证 100/400 kHz、重复起始、
 NACK 及超时恢复。
 
+144 MHz 配置也已修正。TIMINGR 的 PRESC 在 48 MHz 下为 2，在
+144 MHz 下为 8，两档的计数单位均为 62.5 ns。Renode 在两档分别
+通过 8 项 I²C 测试，核对了 100/400 kHz 的配置、传输和恢复。
+原移植提交为 `4ad6fde89a`，上游候选为 `30f23d4ee0`。
+实板 SCL 波形待测。
+
 ## SPI1 上游候选
 
 复用 Apache NuttX 现有的 SPI v5 驱动。C552 的 CMake `nsh-spi` 镜像

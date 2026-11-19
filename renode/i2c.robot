@@ -4,6 +4,7 @@ Test Setup    Boot I2C NSH
 *** Variables ***
 ${ELF}    ${CURDIR}/../build/stm32c552-i2c/nuttx
 ${PLATFORM}    ${CURDIR}/stm32c552vet6-devkit-i2c.repl
+${KERNEL_HZ}    48000000
 
 *** Test Cases ***
 I2C1 Is Registered
@@ -27,7 +28,8 @@ I2C1 Is Registered
     Should Be True    (int($source, 16) & 3) == 0
     Should Be True    (int($nvic, 16) & 0x3000) == 0x3000
     Should Be Equal As Integers    ${od}    0x300
-    Should Be Equal As Integers    ${timing}    0x20814F4F
+    ${expected}=    Evaluate    0x80814F4F if int(${KERNEL_HZ}) == 144000000 else 0x20814F4F
+    Should Be Equal As Integers    ${timing}    ${expected}
     Should Contain    ${filter}    True
     Should Be Equal As Integers    ${unsafe}    0
 
@@ -59,7 +61,8 @@ I2C1 Transfers Two Data Bytes At Fast Mode
     ${unsafe}=    Execute Command    sysbus.i2c1.register_memory TimingWhileEnabled
     Should Be Equal As Integers    ${lo}    0xEF
     Should Be Equal As Integers    ${hi}    0xBE
-    Should Be Equal As Integers    ${timing}    0x20611214
+    ${expected}=    Evaluate    0x80611214 if int(${KERNEL_HZ}) == 144000000 else 0x20611214
+    Should Be Equal As Integers    ${timing}    ${expected}
     Should Be Equal As Integers    ${unsafe}    0
 
 I2C1 Reads Across The 255 Byte Reload Boundary
