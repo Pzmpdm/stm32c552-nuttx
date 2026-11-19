@@ -201,7 +201,7 @@ Renode 伪串口验证。
 - NuttX 基线 `9ffe7625cb187004cf209f113b3cd96472c92ab2`。已验证的板级提交为
   `ea017765265c8d2a96a450e08a954277373e8717`，位于 `nuttx/` 的
   `stm32c552vet6-devkit` 本地分支。
-- NuttX Apps 基线 `d14111ebeff7e8eb0512e63238883dece6842c05`。
+- NuttX Apps 来源 <https://github.com/apache/nuttx-apps.git>，当前提交 `d14111ebeff7e8eb0512e63238883dece6842c05`。本仓库不镜像 apps。
 - 验证环境为 Arm GNU Toolchain 15.2.Rel1、Renode 1.17.0、Robot Framework 6.1。
 - 板级信号来自同目录的 PADS 原理图及已有 STM32CubeMX2 工程。芯片定义与 ST CMSIS
   设备头文件核对。 [STM32C552VE 产品资料](https://www.st.com/en/microcontrollers-microprocessors/stm32c552ve.html)
