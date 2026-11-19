@@ -15,15 +15,16 @@
 续测时 macOS 只枚举了 ST-Link 的 USB 设备（`0483:374b`）。libusb
 读到配置为 0，设置配置 1 失败。对该探针执行一次 USB 软件复位后，
 CubeProgrammer 仍返回 `DEV_CONNECT_ERR`，ST-Link VCP 也未出现。
-本次无法读取 VTref 或 MCU。重新插拔探针的主机 USB 线后从 SWD 识别开始。
+故障期间无法读取 VTref 或 MCU。
 原始结果见 `probe-resume.log` 和 `probe-resume-after-usb-reset.log`。
 实体拔插后设备重新枚举，macOS 日志仍记录端点 0 超时或事务错误。
 复测见 `probe-after-replug.log`。下一步单独连接探针，检查探针 USB
 接口能否启动，再接回 SWD。
 
 随后 VCP 恢复为 `/dev/cu.usbmodem1103`，SWD 读回
-`DBGMCU_IDCODE=0x1003644e`。探针此时报告 0.12 V，仍待确认实际
-D_3V3 和 VTref。记录见 `probe-after-vcp-returned.log`。
+`DBGMCU_IDCODE=0x1003644e`。两次读数分别为 0.12 V 和 1.04 V，
+第二次读回的 Flash 向量与原值一致。仍待确认实际 D_3V3 和 VTref。
+记录见 `probe-after-vcp-returned.log`、`probe-after-vcp-flash-read.log`。
 
 板上 H4.1 为 D_3V3，H4.8 为 GND。继续前确认以 USB-C 为板供电，
 H4.1 接探针 VTref 并共地，确认板上 D_3V3 和探针参考电压稳定。
@@ -107,6 +108,13 @@ SRAM2 清零在独立的 `nsh-sram2` 镜像检查，两项通过。记录见
 `renode-upstream-lpdma-sram2-regression/report.html`、
 `renode-upstream-lpdma-hse-final/report.html` 和
 `renode-upstream-sram2/report.html`。
+
+## USB FS CDC ACM 上游候选
+
+`38174469d7` 将 M0 V2 USB 设备驱动接入 C552。CMake `nsh-usb`
+镜像在 Renode 中完成控制端点枚举和 CDC 批量双向传输，检查 ES0661
+要求的分组内存读延时。USART1 仍作为 NSH 控制台。实板待测主机枚举、
+多次插拔及传输恢复。结果见 `renode-upstream-usb/report.html`。
 
 ## 上游准备
 
