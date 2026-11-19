@@ -17,6 +17,9 @@
 CubeProgrammer 仍返回 `DEV_CONNECT_ERR`，ST-Link VCP 也未出现。
 本次无法读取 VTref 或 MCU。重新插拔探针的主机 USB 线后从 SWD 识别开始。
 原始结果见 `probe-resume.log` 和 `probe-resume-after-usb-reset.log`。
+实体拔插后设备重新枚举，macOS 日志仍记录端点 0 超时或事务错误。
+复测见 `probe-after-replug.log`。下一步单独连接探针，检查探针 USB
+接口能否启动，再接回 SWD。
 
 板上 H4.1 为 D_3V3，H4.8 为 GND。继续前确认以 USB-C 为板供电，
 H4.1 接探针 VTref 并共地，确认板上 D_3V3 和探针参考电压稳定。
@@ -72,6 +75,15 @@ SPI 错误传递和板级适配分别提交为 `2c998ff2df`、`ca251b14a6`。
 `renode-spi-without-error-propagation/report.html` 和
 `build-upstream-spi-n6.log`。实板待测 SCK、片选、位宽和从设备收发。
 
+## ADC1 上游候选
+
+上游已包含修复 ADC 初始化失败后打开计数的 `be8499bf7a`。沿用
+该实现，移植 PC0/ADC1_IN8 下半部和 `nsh-adc` 配置到 `6ad31b35b8`。
+CMake 镜像通过 44 项 Renode 回归，含 7 项 ADC 测试。覆盖五个输入
+电压点、单次打开连续 32 次采样、EOC 中断交付，以及稳压器、校准和
+就绪失败后重新打开。日志见 `renode-upstream-adc/report.html`。
+实板待测参考电压、已知输入的采样结果及重复打开。
+
 ## 上游准备
 
 Apache NuttX 默认分支是 `master`。本次以 `7b4e437575` 为基线
@@ -80,7 +92,7 @@ Apache NuttX 默认分支是 `master`。本次以 `7b4e437575` 为基线
 | 本地候选分支 | 验证结果 |
 |---|---|
 | `codex/stm32c552-nsh-upstream` | C552 NSH 的 CMake 和 GNU Make 构建均通过，各跑 8 项 Renode 测试。CMake 下参考板 `nucleo-c562re:nsh` 编译通过。 |
-| `codex/stm32c552-port-upstream` | 已移植至 SPI1，使用上游 SPI v5 的错误返回接口。ADC1 及后续配置仍在原移植分支。 |
+| `codex/stm32c552-port-upstream` | 已移植至 ADC1 中断采样。LPDMA 批量采样及后续配置仍在原移植分支。 |
 
 基线 `7b4e437575` 的 `foreach_inode()` 已要求第三个锁模式参数，
 `sync()` 调用仍传两个参数，C552 和参考板构建均失败。候选分支
