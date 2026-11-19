@@ -8,7 +8,7 @@
 |---|---|
 | SWD 识别 | STM32CubeProgrammer 2.23.0 从安装目录运行，以 100 kHz Hot Plug 识别 STM32C5x、Cortex-M33、设备 ID `0x44E`、Rev Y。读取 `DBGMCU_IDCODE` 得 `0x1003644e`。 |
 | Flash 读取 | 在 `0x08000000` 多次读到同一组字 `200007C8 08000775 08000841 08000839`，对应板上已有镜像。 |
-| 目标电压 | CubeProgrammer 报告过 0.71–1.77 V，独立用 OpenOCD 0.12.0 读到约 0.15 V 并提示电压过低。两者读取的是探针的目标电压参考，板上实际 VDD 尚未测量。 |
+| 目标电压 | CubeProgrammer 报告过 0.71–1.77 V，最近一次为 1.29 V。OpenOCD 0.12.0 读到约 0.15 V 并提示电压过低。两者读取的是探针的目标电压参考，板上实际 VDD 尚未测量。 |
 | USART1 | 主机枚举出 ST-Link VCP `/dev/cu.usbmodem11303`。以 115200 8N1 监听原有固件两秒无输出，VCP 到目标 USART1 的接线待现场确认。 |
 | 烧录和运行 | 供电和 VTref 未确认，暂停写 Flash。NSH 和板载外设运行均待测。 |
 
@@ -37,3 +37,36 @@ H4.4（PA9）到接收端，H4.6（PA10）到发送端，并共地。
 验收烧录校验、10 次冷启动、10 次 NRST、100 条串口命令和 30 分钟运行。
 随后按 [六阶段计划](superpowers/plans/2026-11-06-stm32c552-board-port.md)
 记录 LED/按键、SRAM2、时钟、各外设和 USB/IWDG 的实体板结果。
+
+## I²C1 超时恢复
+
+Apache NuttX 主线的首次 Renode 回归中，屏蔽 I²C1 事件 IRQ 后，
+第一笔读操作按预期超时，下一笔应读到寄存器 0 的 `0x0b`，实得
+`0x30`。给 STM32C5 驱动加上超时后发出 STOP，并在现有 Robot
+用例中检查 STOP 在下一笔传输前已发出。旧固件在该断言中读到
+0 次 STOP，修复后读到 1 次并恢复到 `0x0b`。
+
+原移植分支 `ba0ed1bc2b` 和上游候选 `9c9de2830c` 的
+`nsh-i2c` 均通过 27 项 Renode 回归，分别见
+`renode-local-i2c-clean/report.html` 和 `renode-upstream-i2c-final/report.html`。
+I²C1 实板仍待接 3.3 V 上拉和从设备，验证 100/400 kHz、重复起始、
+NACK 及超时恢复。
+
+## 上游准备
+
+Apache NuttX 默认分支是 `master`。本次以 `7b4e437575` 为基线
+建立隔离候选分支，使用同一 Apps 版本。
+
+| 本地候选分支 | 验证结果 |
+|---|---|
+| `codex/stm32c552-nsh-upstream` | C552 NSH 的 CMake 和 GNU Make 构建均通过，各跑 8 项 Renode 测试。CMake 下参考板 `nucleo-c562re:nsh` 编译通过。 |
+| `codex/stm32c552-port-upstream` | 已移植至 I²C1。SPI 移植遇到上游已公共化的 SPI v5 驱动，后续适配需沿用当前 `int` 返回契约复用该驱动。SPI 和后续配置仍在原移植分支。 |
+
+基线 `7b4e437575` 的 `foreach_inode()` 已要求第三个锁模式参数，
+`sync()` 调用仍传两个参数，C552 和参考板构建均失败。候选分支
+带独立修复 `c14180e2ee`，恢复原有的读锁遍历。原始报错和构建
+日志保存在测试目录的 `build-upstream-*.log`。
+
+当前账号对 `apache/nuttx` 无直接推送权限。上游变更经 PR 审核，
+代码 PR 需附实板运行日志，DCO `Signed-off-by` 由人类作者签署。
+当前候选仍缺实板运行证据和 DCO。[Apache NuttX 贡献指南](https://github.com/apache/nuttx/blob/master/CONTRIBUTING.md)

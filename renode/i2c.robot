@@ -76,8 +76,11 @@ I2C1 Reads Across The 255 Byte Reload Boundary
     Should Be Equal As Integers    ${read}    256
 
 I2C1 Times Out With Its Event IRQ Masked And Recovers
+    Execute Command    sysbus.i2c1.register_memory ClearTrace
     Execute Command    sysbus WriteDoubleWord 0xE000E184 0x1000
     Run I2C Command    i2c get -b1 -a50 -r00 -f100000    Transfer failed: 1
+    ${stops}=    Execute Command    sysbus.i2c1.register_memory StopRequests
+    Should Be Equal As Integers    ${stops}    1
     Execute Command    sysbus WriteDoubleWord 0xE000E104 0x1000
     Run I2C Command    i2c get -b1 -a50 -r00 -f100000    Value: 0b
 
