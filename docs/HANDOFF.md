@@ -20,6 +20,7 @@
 | `stm32c552vet6-devkit:nsh-lpdma-sram2` | 同一外设集保持 48 MHz，并加入清零后的 SRAM2 堆 | Renode 46 项通过，含 SRAM2 分配测试 |
 | `stm32c552vet6-devkit:nsh-lpdma-hse` | 同一外设集走 144 MHz，失败时回退 HSIS | Renode 48 项通过，含四项时钟测试 |
 | `stm32c552vet6-devkit:nsh-usb` | 48 MHz NSH，USART1 仍是控制台，CDC ACM 为 `/dev/ttyACM0` | `usb.robot` 1 项通过 |
+| `stm32c552vet6-devkit:nsh-ostest` | 48 MHz NSH，SRAM2 堆，运行上游 `ostest` | `ostest.robot` 1 项通过，退出状态 0 |
 
 默认配置中 SRAM1 从 `0x20000000` 开始，SRAM2 从 `0x20010000` 开始。Flash 为 `0x08000000` 起的 512 KiB。静态数据和初始堆留在 SRAM1。
 
@@ -120,3 +121,5 @@ SPI 轮询超时已在 48 MHz 和 144 MHz 的 LPDMA 镜像上通过，各 10 项
 `nsh-usb` 的 CDC ACM 已在寄存器级模型上通过：描述符来自分组内存，批量 OUT 在 ES0661 延迟之后进入 `/dev/ttyACM0`，批量 IN 能从分组内存读回，控制台仍是 USART1。接入 USB 类型之后，LPDMA 栈 46 项通过；ADC 中断栈按当前源重新编译后 44 项通过，其中 7 项仍是原来的单样本中断验收。
 
 IWDG 会真正复位仿真里的 Cortex-M。停止喂狗后 NSH 重新出现；持续喂狗则当前 shell 和 tmpfs 文件都还在。仿真计划里能做的项到这里结束。实机烧录和计划里先不做的项继续不做。
+
+`nsh-ostest` 在同一套 Renode 上跑完上游 ostest，退出状态为 0。验收看的是结束前没有 `ERROR` 或 `Assertion failed`，然后出现 `ostest_main: Exiting with status 0`。镜像使用已有的 SRAM2 堆，静态占用仍在 SRAM1。这覆盖调度、互斥、信号、POSIX 定时器、消息队列、FPU 上下文和轮转；工作队列子项没有打开。它不测量硬件时钟。
